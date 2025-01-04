@@ -1,176 +1,208 @@
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <stdbool.h>
 #include <math.h>
-
-#define POP_SIZE 1000
-#define RAND_FLOAT(N) ((float)rand()/(float)RAND_MAX)*N
-#define ZEROS(N) init_array(N,0);
+#include <string.h>
+#include "utils.h"
 
 // take timing not including IO
+struct Weights{
+  float sl[2], al[2], cl[2], fl[2], el[2], wl[2];
+  float st, at, ct, ft, et, wt;
+  float s, a, c, f, e, w;
+};
+typedef struct Weights Weights;
 
-typedef struct{
-  float x;
-  float y;
-} Coord;
+void compute_steps(Weights* w, unsigned int steps){
+  w->st=(w->sl[1]-w->sl[0])/(float)steps;
+  w->s=w->sl[0];
+  w->at=(w->al[1]-w->al[0])/(float)steps;
+  w->a=w->al[0];
 
+  w->ct=(w->cl[1]-w->cl[0])/(float)steps;
+  w->c=w->cl[0];
+  w->ft=(w->fl[1]-w->fl[0])/(float)steps;
+  w->f=w->fl[0];
 
-Coord* init_array(int dim,int range_max){
-	Coord *arr = (Coord*)malloc(dim*sizeof(Coord));
-
-	for(int i=0; i<POP_SIZE; i++){
-      arr[i] = (Coord){.x = RAND_FLOAT(range_max), .y = RAND_FLOAT(range_max)}; 
-	}
-
-	return arr;
+  w->et=(w->el[1]-w->el[0])/(float)steps;
+  w->e=w->el[0];
+  w->wt=(w->wl[1]-w->wl[0])/(float)steps;
+  w->w=w->wl[0];
 }
-
-
-float distance(Coord p1,Coord p2){
-  double dx = p1.x - p2.x;
-  double dy = p1.y - p2.y;
-
-  return sqrt(pow(dy,2)+pow(dx,2)); 
+void step(Weights* w){
+  w->s+=w->st;
+  w->a+=w->at;
+  w->c+=w->ct;
+  w->f+=w->ft;
+  w->e+=w->et;
+  w->w+=w->wt;
 }
+float* dragonfly(unsigned int dimensions, unsigned int N, unsigned int iterations, float space_size, Weights weights, float (*fitness)(float*, unsigned int)){
+  //compute weigths progression
+  compute_steps(&weights, iterations);
+  
+  //allocate, and init random positions
+  float* positions = init_array(N*dimensions, space_size);
+  float* speeds = init_array(N*dimensions, space_size/20.0);
+
+  // allocate food and next_food, 
+  float* food = init_array(dimensions, space_size);
+  float* next_food = malloc(dimensions*sizeof(float));
+  memcpy(next_food, food, dimensions*sizeof(float));
+  float next_food_fitness = fitness(food, dimensions);
+
+  // allocate enemy and next_enemy 
+  float* enemy = init_array(dimensions, space_size);
+  float* next_enemy = init_array(dimensions, space_size);
+  memcpy(next_enemy, enemy, dimensions*sizeof(float));
+  float next_enemy_fitness=fitness(enemy, dimensions);
+
+  //some temp values.
+  float* cumulated_pos = init_array(dimensions, 0.0);
+  float* tmp = init_array(dimensions, 0.0);
+  float* avarage_speed = init_array(dimensions, 0.0);
+
+  float* S = init_array(dimensions, 0.0);
+  float* A = init_array(dimensions, 0.0);
+  float* C = init_array(dimensions, 0.0);
+  float* F = init_array(dimensions, 0.0);
+  float* E = init_array(dimensions, 0.0);
+  float* W = init_array(dimensions, 0.0);
+  float* delta_pos = init_array(dimensions, 0.0);
+
+  //for each iteration
+  for(unsigned int i=0; i<iterations; i++){
+    //compute avarage speed and positions
+    zeroed(cumulated_pos, dimensions);
+    zeroed(avarage_speed, dimensions);
+    for(unsigned int j=0; j<N;j++){
+      sum_assign(cumulated_pos, positions+dimensions*j, dimensions);
+      sum_assign(avarage_speed, speeds+dimensions*j, dimensions);
+    }
+    scalar_prod_assign(avarage_speed, 1.0/(float)N, dimensions);
+
+    //for each dragonfly
+    for(unsigned int j=0; j<N;j++){
+      float* cur_pos = positions+dimensions*j;
+      float* cur_speed = speeds+dimensions*j;
+      //compute separation: Si = -sumall(X-Xi)
+      memcpy(S, cur_pos, sizeof(float)*dimensions);
+      scalar_prod_assign(S, -(float)N, dimensions);
+      sum_assign(S, cumulated_pos, dimensions);
+      scalar_prod_assign(S, weights.s, dimensions);
+
+      //compute alignament: Ai = avarage(Vi)
+      memcpy(A, avarage_speed, sizeof(float)*dimensions);
+      scalar_prod_assign(A, weights.a, dimensions);
+
+      //compute cohesion: Ci = avarage(Xi)-X
+      memcpy(C, cumulated_pos, sizeof(float)*dimensions);
+      scalar_prod_assign(C, 1.0/(float)N, dimensions);
+      sub_assign(C, cur_pos, dimensions);
+      scalar_prod_assign(C, weights.c, dimensions);
+
+      //food attraction: Fi=X_food - X
+      memcpy(F, food, sizeof(float)*dimensions);
+      sub_assign(F, cur_pos, dimensions);
+      scalar_prod_assign(F, weights.f, dimensions);
+
+      //enemy repulsion: E=X_enemy+X
+      memcpy(E, enemy, sizeof(float)*dimensions);
+      sum_assign(E, cur_pos, dimensions);
+      scalar_prod_assign(E, weights.e, dimensions);
+
+      //compute speed = sSi + aAi + cCi + fFi + eEi + w
+      scalar_prod_assign(cur_speed, weights.w, dimensions);
+      sum_assign(cur_speed, E, dimensions);
+      sum_assign(cur_speed, F, dimensions);
+      sum_assign(cur_speed, C, dimensions);
+      sum_assign(cur_speed, A, dimensions);
+      sum_assign(cur_speed, S, dimensions);
+
+      //check if speed is too big
+      if (length(cur_speed, dimensions)>space_size/10.0){
+        float speed = length(cur_speed, dimensions);
+        scalar_prod_assign(cur_speed, space_size/10.0/speed, dimensions);
+      }
 
 
-bool get_updates(Coord* position,Coord* step,Coord* food,Coord* enemy_pos,float* weights,Coord* updates){
-  bool neighbours = false;
-  Coord S;
-  Coord A;
-  Coord C;
-  Coord F;
-  Coord E;
-  int nr_neighbours;
-
-
-  float eps = 10e-2;
-
-  for(int dragonfly=0; dragonfly<POP_SIZE; dragonfly++){
-    S = (Coord){.x = 0,.y=0};
-    A = (Coord){.x = 0,.y=0};
-    C = (Coord){.x = 0,.y=0};
-    F = (Coord){.x = 0,.y=0};
-    E = (Coord){.x = 0,.y=0};
-    nr_neighbours = 0;
-
-    for(int k=0; k<POP_SIZE; k++){
-
-      if(k != dragonfly && distance(position[dragonfly],position[k]) < eps){
-            S.x += position[k].x - position[dragonfly].x;
-            S.y += position[k].y - position[dragonfly].y;
-
-            A.x += step[k].x;
-            A.y += step[k].y;
-
-            C.x += position[k].x;
-            C.y += position[k].y;
-
-            nr_neighbours++;
-        }
-
+      //update current pos
+      sum_assign(cur_pos, cur_speed, dimensions);
+      float fit = fitness(cur_pos, dimensions);
+      //printf("%f\n", fit);
+      if(fit<next_enemy_fitness){
+        next_enemy_fitness=fit;
+        memcpy(next_enemy, cur_pos, dimensions*sizeof(float));
+      }
+      if(fit>next_food_fitness){
+        next_food_fitness=fit;
+        memcpy(next_food, cur_pos, dimensions*sizeof(float));
+      }
     }
 
-    F.x = food[dragonfly].x - position[dragonfly].x;
-    F.y = food[dragonfly].y - position[dragonfly].y;
+    // update food and enemy
+    //printf("found fitness=%f\n", next_food_fitness);
+    memcpy(enemy, next_enemy, dimensions*sizeof(float));
+    memcpy(food, next_food, dimensions*sizeof(float));
 
-    E.x = enemy_pos[dragonfly].x - position[dragonfly].x;
-    E.y = enemy_pos[dragonfly].y - position[dragonfly].y;
-
-    updates[dragonfly].x = (weights[0]*S.x + weights[3]*F.x + weights[4]*E.x) + weights[5]*step[dragonfly].x;
-
-    updates[dragonfly].y = (weights[0]*S.y + weights[3]*F.y + weights[4]*E.y) + weights[5]*step[dragonfly].y;
+    //update weights
+    step(&weights);
+  }
 
 
-    if(nr_neighbours > 0){
-        A.x /= nr_neighbours;
-        A.y /= nr_neighbours;
 
-        C.x /= nr_neighbours;
-        C.y /= nr_neighbours;
+  free(positions);
+  free(speeds);
+	free(food);
+  //free(next_food);
+	free(enemy);
+  free(next_enemy);
 
-        C.x -= position[dragonfly].x;
-        C.y -= position[dragonfly].y;
+  free(cumulated_pos);
+  free(avarage_speed);
+  free(tmp);
 
-        neighbours = true;
+  free(S);
+  free(A);
+  free(C);
+  free(F);
+  free(E);
+  free(W);
+  free(delta_pos);
+  return next_food;
+} 
 
-        updates[dragonfly].x += weights[1]*A.x + weights[2]*C.x;
-        updates[dragonfly].y +=  weights[1]*A.y +weights[2]*C.y;
+float sphere_fitness(float* inp, unsigned int dim){
+    float res=0.0;
+    for(unsigned int i=0; i<dim; i++){
+      res+=inp[i]*inp[i];
     }
-  }
-
-
-  return neighbours;
-}
-
-float sigma(float beta) {
-  return tgamma(beta+1)*sin(beta*M_PI/2)/tgamma((beta+1)/2)*beta*pow(2,(beta-1)/2);
-}
-
-float levy(int dim){
-  float beta = 4.25;
-  return 0.01*(RAND_FLOAT(1)*sigma(beta)/pow(RAND_FLOAT(1),1/beta));
-}
-
-void update_with_formula(Coord* position,Coord* step,Coord* updates){
-  for(int dragonfly = 0; dragonfly<POP_SIZE; dragonfly++){
-    step[dragonfly].x = updates[dragonfly].x;
-    step[dragonfly].y = updates[dragonfly].y;
-
-    position[dragonfly].x += step[dragonfly].x;
-    position[dragonfly].y += step[dragonfly].y;
-  }
-}
-
-
-void update_random(Coord* position){
-  for(int dragonfly = 0; dragonfly < POP_SIZE; dragonfly++){
-     position[dragonfly].x += levy(POP_SIZE)*position[dragonfly].x;
-     position[dragonfly].y += levy(POP_SIZE)*position[dragonfly].y;
-  }
+    return -res;
 }
 
 int main() {
    
 	srand(time(NULL));
+  Weights w ={
+    //exploring
+    .al={0.3, 0.01},
+    .cl={0.01, 0.3},
+    //swarming
+    .sl={0.1, 0.1},
+    .fl={0.1, 0.1},
+    .el={0.1, 0.1},
+    .wl={0.1, 0.1},
+  };
+  unsigned int dim=2;
+  float* res = dragonfly(dim, 10000, 10000, 2.0, w, sphere_fitness);
+  float fit = sphere_fitness(res, dim);
+  printf("found fitness=%f\n", fit);
+  for(unsigned int i=0; i<dim; i++){
+    printf("%f\n", res[i]);
+  }
+  free(res);
 
-	Coord* position = init_array(POP_SIZE,POP_SIZE);
-	Coord* step = ZEROS(POP_SIZE)
-	Coord* enemy_pos = init_array(POP_SIZE,POP_SIZE);
-    Coord* food = init_array(POP_SIZE,POP_SIZE); 
-    Coord* updates = ZEROS(POP_SIZE)
-    
-    
-    float weights[6] = {
-      RAND_FLOAT(1),
-      RAND_FLOAT(1),
-      RAND_FLOAT(1),
-      RAND_FLOAT(1),
-      RAND_FLOAT(1),
-      RAND_FLOAT(1)
-    };
 
-	int iter_max = 100;
-    bool use_levy = false;
 	
-	for(int i=0; i<iter_max; i++){
-      use_levy = get_updates(position,step,food,enemy_pos,weights,updates);
-
-
-      if(!use_levy)
-        update_with_formula(position,step,updates);
-      else
-        update_random(position);
-             
-	}
-
-
-    free(updates);
-    free(food);
-	free(step);
-	free(position);
-	free(enemy_pos);
-
-	return 0;
 }
