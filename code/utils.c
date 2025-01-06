@@ -4,11 +4,13 @@
 
 float* init_array(unsigned int dimensions, float range_max){
 	float *arr = malloc(dimensions*sizeof(float));
+
 	for(unsigned int i=0; i<dimensions; i++){
       arr[i] = RAND_FLOAT(range_max);
 	}
 	return arr;
 }
+
 
 void zeroed(float* dest, unsigned int size){
 	for(unsigned int i=0; i<size; i++){

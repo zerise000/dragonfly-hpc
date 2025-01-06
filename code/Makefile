@@ -1,9 +1,9 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -g -o -fsanitize=address
-EXEC=dragonfly-serial
+CFLAGS=-Wall -Wextra -fopenmp -g -o -std=c11 
+EXEC=dragonfly-parallel
 DLL=-lm
 
-$(EXEC): main.c utils.c
+$(EXEC): main.c utils.c parallel.c
 	@$(CC) $(CFLAGS) -o $@ $^ $(DLL) 
 
 .PHONY clean: $(EXEC) 

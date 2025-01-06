@@ -1,18 +1,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
-#include <stdbool.h>
 #include <math.h>
 #include <string.h>
+#include "parallel.h"
 #include "utils.h"
 
-// take timing not including IO
-struct Weights{
+
+typedef struct Weights{
   float sl[2], al[2], cl[2], fl[2], el[2], wl[2];
   float st, at, ct, ft, et, wt;
   float s, a, c, f, e, w;
-};
-typedef struct Weights Weights;
+
+} Weights;
 
 void compute_steps(Weights* w, unsigned int steps){
   w->st=(w->sl[1]-w->sl[0])/(float)steps;
@@ -30,6 +30,7 @@ void compute_steps(Weights* w, unsigned int steps){
   w->wt=(w->wl[1]-w->wl[0])/(float)steps;
   w->w=w->wl[0];
 }
+
 void step(Weights* w){
   w->s+=w->st;
   w->a+=w->at;
@@ -38,30 +39,32 @@ void step(Weights* w){
   w->e+=w->et;
   w->w+=w->wt;
 }
-float* dragonfly(unsigned int dimensions, unsigned int N, unsigned int iterations, float space_size, Weights weights, float (*fitness)(float*, unsigned int)){
+
+
+
+float* dragonfly(unsigned int dimensions, unsigned int N, unsigned int iterations,unsigned int nr_threads, float space_size, Weights weights, float (*fitness)(float*, unsigned int)){
   //compute weigths progression
   compute_steps(&weights, iterations);
   
   //allocate, and init random positions
-  float* positions = init_array(N*dimensions, space_size);
-  float* speeds = init_array(N*dimensions, space_size/20.0);
+  float* positions = init_array_parallel(N*dimensions, space_size,nr_threads);
+  float* speeds = init_array_parallel(N*dimensions, space_size/20.0, nr_threads);
 
   // allocate food and next_food, 
-  float* food = init_array(dimensions, space_size);
+  float* food = init_array_parallel(dimensions, space_size,nr_threads);
   float* next_food = malloc(dimensions*sizeof(float));
   memcpy(next_food, food, dimensions*sizeof(float));
   float next_food_fitness = fitness(food, dimensions);
 
   // allocate enemy and next_enemy 
-  float* enemy = init_array(dimensions, space_size);
-  float* next_enemy = init_array(dimensions, space_size);
+  float* enemy =  init_array_parallel(dimensions, space_size,nr_threads);
+  float* next_enemy = init_array_parallel(dimensions, space_size,nr_threads);
   memcpy(next_enemy, enemy, dimensions*sizeof(float));
   float next_enemy_fitness=fitness(enemy, dimensions);
 
   //some temp values.
-  float* cumulated_pos = init_array(dimensions, 0.0);
-  float* tmp = init_array(dimensions, 0.0);
-  float* avarage_speed = init_array(dimensions, 0.0);
+  float* cumulated_pos = init_array_parallel(dimensions, 0,nr_threads);
+  float* average_speed = init_array_parallel(dimensions, 0,nr_threads);
 
   float* S = init_array(dimensions, 0.0);
   float* A = init_array(dimensions, 0.0);
@@ -74,13 +77,8 @@ float* dragonfly(unsigned int dimensions, unsigned int N, unsigned int iteration
   //for each iteration
   for(unsigned int i=0; i<iterations; i++){
     //compute avarage speed and positions
-    zeroed(cumulated_pos, dimensions);
-    zeroed(avarage_speed, dimensions);
-    for(unsigned int j=0; j<N;j++){
-      sum_assign(cumulated_pos, positions+dimensions*j, dimensions);
-      sum_assign(avarage_speed, speeds+dimensions*j, dimensions);
-    }
-    scalar_prod_assign(avarage_speed, 1.0/(float)N, dimensions);
+	parallel_sum(cumulated_pos,average_speed,positions,speeds,N,dimensions,nr_threads);
+
 
     //for each dragonfly
     for(unsigned int j=0; j<N;j++){
@@ -93,7 +91,7 @@ float* dragonfly(unsigned int dimensions, unsigned int N, unsigned int iteration
       scalar_prod_assign(S, weights.s, dimensions);
 
       //compute alignament: Ai = avarage(Vi)
-      memcpy(A, avarage_speed, sizeof(float)*dimensions);
+      memcpy(A, average_speed, sizeof(float)*dimensions);
       scalar_prod_assign(A, weights.a, dimensions);
 
       //compute cohesion: Ci = avarage(Xi)-X
@@ -114,11 +112,10 @@ float* dragonfly(unsigned int dimensions, unsigned int N, unsigned int iteration
 
       //compute speed = sSi + aAi + cCi + fFi + eEi + w
       scalar_prod_assign(cur_speed, weights.w, dimensions);
-      sum_assign(cur_speed, E, dimensions);
-      sum_assign(cur_speed, F, dimensions);
-      sum_assign(cur_speed, C, dimensions);
-      sum_assign(cur_speed, A, dimensions);
-      sum_assign(cur_speed, S, dimensions);
+	  for(unsigned int i = 0; i<dimensions; i++){
+	  	cur_speed[i] = E[i] + F[i] + C[i] + A[i] +S[i]; 
+	  }
+
 
       //check if speed is too big
       if (length(cur_speed, dimensions)>space_size/10.0){
@@ -154,14 +151,12 @@ float* dragonfly(unsigned int dimensions, unsigned int N, unsigned int iteration
 
   free(positions);
   free(speeds);
-	free(food);
-  //free(next_food);
-	free(enemy);
+  free(food);
+  free(enemy);
   free(next_enemy);
 
   free(cumulated_pos);
-  free(avarage_speed);
-  free(tmp);
+  free(average_speed);
 
   free(S);
   free(A);
@@ -181,28 +176,33 @@ float sphere_fitness(float* inp, unsigned int dim){
     return -res;
 }
 
+
+
 int main() {
-   
 	srand(time(NULL));
-  Weights w ={
-    //exploring
-    .al={0.3, 0.01},
-    .cl={0.01, 0.3},
-    //swarming
-    .sl={0.1, 0.1},
-    .fl={0.1, 0.1},
-    .el={0.1, 0.1},
-    .wl={0.1, 0.1},
-  };
-  unsigned int dim=2;
-  float* res = dragonfly(dim, 10000, 10000, 2.0, w, sphere_fitness);
-  float fit = sphere_fitness(res, dim);
-  printf("found fitness=%f\n", fit);
-  for(unsigned int i=0; i<dim; i++){
-    printf("%f\n", res[i]);
-  }
-  free(res);
 
+	unsigned int dim = 2;	
+	unsigned int tot_dragonflies = 10000; 
+	unsigned int iters = 10000; 
+	unsigned int nr_threads = 7; 
 
-	
+	Weights w ={
+		//exploring
+		.al={0.3, 0.01},
+		.cl={0.01, 0.3},
+		//swarming
+		.sl={0.1, 0.1},
+		.fl={0.1, 0.1},
+		.el={0.1, 0.1},
+		.wl={0.1, 0.1},
+	};
+
+	float* res = dragonfly(dim, tot_dragonflies, iters, nr_threads, 2.0, w, sphere_fitness);
+	float fit = sphere_fitness(res, dim);
+	printf("found fitness=%f\n", fit);
+	for(unsigned int i=0; i<dim; i++){
+		printf("%f\n", res[i]);
+	}
+	free(res);
+	return 0;
 }
