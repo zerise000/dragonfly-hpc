@@ -173,10 +173,25 @@ float* dragonfly(unsigned int dimensions, unsigned int N, unsigned int iteration
   return next_food;
 } 
 
+float rastrigin_fitness(float* inp, unsigned int dim){
+  float ret  =10.0*dim;
+  for(int i=0; i<dim; i++){
+    ret+=inp[i]*inp[i]-10.0*cos(2*M_PI*inp[i]);
+  }
+  return -ret;
+}
+
 float sphere_fitness(float* inp, unsigned int dim){
     float res=0.0;
     for(unsigned int i=0; i<dim; i++){
       res+=inp[i]*inp[i];
+    }
+    return -res;
+}
+float rosenblock_fitness(float* inp, unsigned int dim){
+  float res=0.0;
+    for(unsigned int i=0; i<dim-1; i++){
+      res+=100*pow(inp[i+1]-inp[i]*inp[i], 2.0)+pow(1.0-inp[i], 2.0);
     }
     return -res;
 }
@@ -195,7 +210,7 @@ int main() {
     .wl={0.1, 0.1},
   };
   unsigned int dim=2;
-  float* res = dragonfly(dim, 10000, 10000, 2.0, w, sphere_fitness);
+  float* res = dragonfly(dim, 500, 500, 5.0, w, rosenblock_fitness);
   float fit = sphere_fitness(res, dim);
   printf("found fitness=%f\n", fit);
   for(unsigned int i=0; i<dim; i++){
