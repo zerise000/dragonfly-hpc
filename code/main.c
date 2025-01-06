@@ -175,7 +175,7 @@ float* dragonfly(unsigned int dimensions, unsigned int N, unsigned int iteration
 
 float rastrigin_fitness(float* inp, unsigned int dim){
   float ret  =10.0*dim;
-  for(int i=0; i<dim; i++){
+  for(unsigned int i=0; i<dim; i++){
     ret+=inp[i]*inp[i]-10.0*cos(2*M_PI*inp[i]);
   }
   return -ret;
