@@ -48,3 +48,27 @@ float levy(){
   float beta = 4.25;
   return 0.01*(RAND_FLOAT(1)*sigma(beta)/pow(RAND_FLOAT(1),1/beta));
 }
+
+
+float rastrigin_fitness(float* inp, unsigned int dim){
+  float ret  =10.0*dim;
+  for(unsigned int i=0; i<dim; i++){
+    ret+=inp[i]*inp[i]-10.0*cos(2*M_PI*inp[i]);
+  }
+  return -ret;
+}
+
+float sphere_fitness(float* inp, unsigned int dim){
+    float res=0.0;
+    for(unsigned int i=0; i<dim; i++){
+      res+=inp[i]*inp[i];
+    }
+    return -res;
+}
+float rosenblock_fitness(float* inp, unsigned int dim){
+  float res=0.0;
+    for(unsigned int i=0; i<dim-1; i++){
+      res+=100*pow(inp[i+1]-inp[i]*inp[i], 2.0)+pow(1.0-inp[i], 2.0);
+    }
+    return -res;
+}
