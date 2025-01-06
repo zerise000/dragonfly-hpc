@@ -1,2 +1,2 @@
 #!/bin/bash
-make && gdb ./dragonfly-serial
+make && gdb ./serial.bin

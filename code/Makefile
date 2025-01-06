@@ -3,8 +3,11 @@ CFLAGS=-Wall -Wextra -g -o -fsanitize=address
 EXEC=dragonfly-serial
 DLL=-lm
 
-$(EXEC): main.c utils.c
+serial: main.c utils.c
 	@$(CC) $(CFLAGS) -o $@ $^ $(DLL) 
 
-.PHONY clean: $(EXEC) 
+parallel: main.c utils.c parallel-utils.c
+	@$(CC) $(CFLAGS) -o $@ $^ $(DLL) 
+
+.PHONY clean: serial
 	@rm $^ 
