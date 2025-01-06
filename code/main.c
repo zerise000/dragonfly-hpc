@@ -212,7 +212,6 @@ float* dragonfly_compute(Dragonfly *d){
 } 
 
 int main() {
-   
 	srand(time(NULL));
   Weights w ={
     //exploring
