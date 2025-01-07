@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <math.h>
+
 #include "utils.h"
+#include "wrappers.h"
 
 float* init_array(unsigned int dimensions, float range_max){
 	float *arr = malloc(dimensions*sizeof(float));
