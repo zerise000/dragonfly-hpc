@@ -62,7 +62,6 @@ void dragonfly_alloc(Dragonfly *d) {
   unsigned int dim = d->dim;
   unsigned int N = d->N;
   unsigned int space_size = d->space_size;
-  printf("%d %d %d\n", dim, N, space_size);
   d->positions = init_array(N * dim, space_size);
   d->speeds = init_array(N * dim, space_size / 20.0);
 

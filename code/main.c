@@ -123,7 +123,7 @@ int main() {
   unsigned int dim = 2;
   unsigned int chunks = 8;
   unsigned int iterations=1000;
-  unsigned int N=2000;
+  unsigned int N=100000;
   Dragonfly *d = malloc(sizeof(Dragonfly) * chunks);
   for (unsigned int i = 0; i < chunks; i++) {
     d[i] = dragonfly_new(dim, N, chunks, i, iterations, 5.0, w, rosenblock_fitness);

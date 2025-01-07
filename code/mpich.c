@@ -65,7 +65,7 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
   // for each iteration
   for (unsigned int i = 0; i < iter; i++) {
     if (i != 0 && i % update_chunk_steps == 0) {
-      printf("update");
+      printf("update\n");
       joint_chunks *= 2;
     }
     // compute avarage speed and positions
@@ -145,7 +145,7 @@ int main() {
   unsigned int dim = 2;
   int chunks = 1;
   unsigned int iterations = 1000;
-  unsigned int N = 2000;
+  unsigned int N = 100000;
   int my_id;
   MPI_Init(NULL, NULL);
   MPI_Comm_size(MPI_COMM_WORLD, &chunks);
