@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "utils.h"
+#include <stdbool.h>
 
 void weights_compute_steps(Weights *w, unsigned int steps) {
   w->st = (w->sl[1] - w->sl[0]) / (float)steps;
@@ -89,11 +90,11 @@ void dragonfly_free(Dragonfly d) {
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float * food, float * enemy) {
   unsigned int dim = d->dim;
-
   // for each dragonfly
   for (unsigned int j = 0; j < d->N; j++) {
     float *cur_pos = d->positions + dim * j;
     float *cur_speed = d->speeds + dim * j;
+
     // compute separation: Si = -sumall(X-Xi)
     memcpy(d->S, cur_pos, sizeof(float) * dim);
     scalar_prod_assign(d->S, -(float)d->N, dim);
@@ -127,13 +128,12 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     sum_assign(cur_speed, d->C, dim);
     sum_assign(cur_speed, d->A, dim);
     sum_assign(cur_speed, d->S, dim);
-
-    // check if speed is too big
-    if (length(cur_speed, dim) > d->space_size / 10.0) {
-      float speed = length(cur_speed, dim);
+    float speed = length(cur_speed, dim);
+    if (speed > d->space_size / 10.0) {
       scalar_prod_assign(cur_speed, d->space_size / 10.0 / speed, dim);
     }
-
+    
+    
     // update current pos
     sum_assign(cur_pos, cur_speed, dim);
   }
