@@ -9,7 +9,7 @@ openmpi.bin: openmpi.c utils.c parallel-utils.c
 	@$(CC) $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
 
 mpich.bin: mpich.c utils.c dragonfly-common.c
-	@mpicc $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
+	mpicc $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
 
 .PHONY clean: 
 	@rm serial.bin openmpi.bin
