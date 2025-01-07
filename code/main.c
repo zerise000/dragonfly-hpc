@@ -6,22 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct {
-  float cumulated_pos[50];
-  float cumulated_speeds[50];
-
-  float next_enemy[50];
-  float next_enemy_fitness;
-  float next_food[50];
-  float next_food_fitness;
-
-  unsigned int n;
-} Message;
-
-
-
-
 unsigned int raw_sendrecv_shift;
+
 void raw_sendrecv(Message *send, unsigned int destination, Message *recv_buffer,
                   unsigned int source, void *data_raw) {
   Message *data = data_raw;
@@ -31,38 +17,7 @@ void raw_sendrecv(Message *send, unsigned int destination, Message *recv_buffer,
   *recv_buffer= data[source+raw_sendrecv_shift];
 }
 
-void message_broadcast(Message *my_value, unsigned int i, unsigned int incr,
-                       void *data, int dim,
-                       void (*raw_sendrecv)(Message *, unsigned int, Message *,
-                                            unsigned int, void *)) {
-  
-  Message recv_buffer;
-  int index_other;
-  int steps=0;
-  int tmp_incr=incr;
-  while(tmp_incr>1){
-    tmp_incr/=2;
-    steps++;
-  }
-  if ((i>>steps) % 2 == 0) {
-    index_other = i + incr;
-  } else {
-    index_other = i - incr;
-  }
-  raw_sendrecv(my_value, index_other, &recv_buffer, index_other, data);
 
-  sum_assign(my_value->cumulated_pos, recv_buffer.cumulated_pos, dim);
-  sum_assign(my_value->cumulated_speeds, recv_buffer.cumulated_speeds, dim);
-  if(my_value->next_food_fitness<recv_buffer.next_food_fitness){
-    memcpy(my_value->next_food, recv_buffer.next_food, sizeof(float)*dim);
-    my_value->next_food_fitness=recv_buffer.next_food_fitness;
-  }
-  if(my_value->next_enemy_fitness>recv_buffer.next_enemy_fitness){
-    memcpy(my_value->next_enemy, recv_buffer.next_enemy, sizeof(float)*dim);
-    my_value->next_enemy_fitness=recv_buffer.next_enemy_fitness;
-  }
-  my_value->n += recv_buffer.n;
-}
 
 // take timing not including IO
 float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim, 

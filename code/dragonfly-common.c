@@ -141,3 +141,37 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
   // update weights
   weights_step(&d->w);
 }
+
+
+void message_broadcast(Message *my_value, unsigned int i, unsigned int incr,
+                       void *data, int dim,
+                       void (*raw_sendrecv)(Message *, unsigned int, Message *,
+                                            unsigned int, void *)) {
+  
+  Message recv_buffer;
+  int index_other;
+  int steps=0;
+  int tmp_incr=incr;
+  while(tmp_incr>1){
+    tmp_incr/=2;
+    steps++;
+  }
+  if ((i>>steps) % 2 == 0) {
+    index_other = i + incr;
+  } else {
+    index_other = i - incr;
+  }
+  raw_sendrecv(my_value, index_other, &recv_buffer, index_other, data);
+
+  sum_assign(my_value->cumulated_pos, recv_buffer.cumulated_pos, dim);
+  sum_assign(my_value->cumulated_speeds, recv_buffer.cumulated_speeds, dim);
+  if(my_value->next_food_fitness<recv_buffer.next_food_fitness){
+    memcpy(my_value->next_food, recv_buffer.next_food, sizeof(float)*dim);
+    my_value->next_food_fitness=recv_buffer.next_food_fitness;
+  }
+  if(my_value->next_enemy_fitness>recv_buffer.next_enemy_fitness){
+    memcpy(my_value->next_enemy, recv_buffer.next_enemy, sizeof(float)*dim);
+    my_value->next_enemy_fitness=recv_buffer.next_enemy_fitness;
+  }
+  my_value->n += recv_buffer.n;
+}

@@ -36,4 +36,21 @@ void dragonfly_free(Dragonfly d);
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float * food, float * enemy);
 
+typedef struct {
+  float cumulated_pos[50];
+  float cumulated_speeds[50];
+
+  float next_enemy[50];
+  float next_enemy_fitness;
+  float next_food[50];
+  float next_food_fitness;
+
+  unsigned int n;
+} Message;
+
+void message_broadcast(Message *my_value, unsigned int i, unsigned int incr,
+                       void *data, int dim,
+                       void (*raw_sendrecv)(Message *, unsigned int, Message *,
+                                            unsigned int, void *));
+                                            
 #endif
