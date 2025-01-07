@@ -29,15 +29,24 @@ void weights_step(Weights *w) {
   w->w += w->wt;
 }
 
-Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
+Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
                         unsigned int iterations, float space_size,
                         Weights weights,
                         float (*fitness)(float *, unsigned int)) {
-  // compute weigths progression
+  // computes weigths progression
+  unsigned int chunk_size=N/chunks;
+  if (chunk_id==chunks-1){
+    // if it is the last chunk, extend it to include additional elements as needed
+    chunk_size=N-chunk_size*(chunks-1);
+  }
   weights_compute_steps(&weights, iterations);
   Dragonfly d = {
+      .chunks = chunks,
+      .chunks_id = chunk_id,
+      .N = chunk_size,
+
       .dim = dimensions,
-      .N = N,
+      
       .iter = iterations,
       .space_size = space_size,
       .w = weights,
@@ -54,21 +63,6 @@ void dragonfly_alloc(Dragonfly *d) {
   d->positions = init_array(N * dim, space_size);
   d->speeds = init_array(N * dim, space_size / 20.0);
 
-  // allocate food and next_food,
-  d->food = init_array(dim, space_size);
-  d->next_food = malloc(dim * sizeof(float));
-  memcpy(d->next_food, d->food, dim * sizeof(float));
-  d->next_food_fitness = d->fitness(d->food, dim);
-
-  // allocate enemy and next_enemy
-  d->enemy = init_array(dim, space_size);
-  d->next_enemy = init_array(dim, space_size);
-  memcpy(d->next_enemy, d->enemy, dim * sizeof(float));
-  d->next_enemy_fitness = d->fitness(d->enemy, dim);
-
-  // some temp values.
-  d->cumulated_pos = init_array(dim, 0.0);
-  d->average_speed = init_array(dim, 0.0);
 
   d->S = init_array(dim, 0.0);
   d->A = init_array(dim, 0.0);
@@ -82,13 +76,6 @@ void dragonfly_alloc(Dragonfly *d) {
 void dragonfly_free(Dragonfly d) {
   free(d.positions);
   free(d.speeds);
-  free(d.food);
-  free(d.enemy);
-  free(d.next_food);
-  free(d.next_enemy);
-
-  free(d.cumulated_pos);
-  free(d.average_speed);
 
   free(d.S);
   free(d.A);
@@ -100,7 +87,7 @@ void dragonfly_free(Dragonfly d) {
 }
 
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
-                            float *cumulated_pos) {
+                            float *cumulated_pos, float * food, float * enemy) {
   unsigned int dim = d->dim;
 
   // for each dragonfly
@@ -124,12 +111,12 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     scalar_prod_assign(d->C, d->w.c, dim);
 
     // food attraction: Fi=X_food - X
-    memcpy(d->F, d->food, sizeof(float) * dim);
+    memcpy(d->F, food, sizeof(float) * dim);
     sub_assign(d->F, cur_pos, dim);
     scalar_prod_assign(d->F, d->w.f, dim);
 
     // enemy repulsion: E=X_enemy+X
-    memcpy(d->E, d->enemy, sizeof(float) * dim);
+    memcpy(d->E, enemy, sizeof(float) * dim);
     sum_assign(d->E, cur_pos, dim);
     scalar_prod_assign(d->E, d->w.e, dim);
 
@@ -149,22 +136,7 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
 
     // update current pos
     sum_assign(cur_pos, cur_speed, dim);
-    float fit = d->fitness(cur_pos, dim);
-    // printf("%f\n", fit);
-    if (fit < d->next_enemy_fitness) {
-      d->next_enemy_fitness = fit;
-      memcpy(d->next_enemy, cur_pos, dim * sizeof(float));
-    }
-    if (fit > d->next_food_fitness) {
-      d->next_food_fitness = fit;
-      memcpy(d->next_food, cur_pos, dim * sizeof(float));
-    }
   }
-
-  // update food and enemy
-  // printf("found fitness=%f\n", next_food_fitness);
-  memcpy(d->enemy, d->next_enemy, dim * sizeof(float));
-  memcpy(d->food, d->next_food, dim * sizeof(float));
 
   // update weights
   weights_step(&d->w);

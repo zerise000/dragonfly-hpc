@@ -1,4 +1,4 @@
-CC=gcc
+CC=clang
 CFLAGS=-Wall -Wextra -g -o -fsanitize=address -std=c11 
 DLL=-lm 
 

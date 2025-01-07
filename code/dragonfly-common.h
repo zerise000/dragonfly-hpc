@@ -17,23 +17,23 @@ typedef struct {
   float (*fitness)(float *, unsigned int);
   Weights w;
   // for how many dragonflies? problem definition
+  // N is the chunk_size, not the problem size
   unsigned int N, iter, chunks, chunks_id;
 
   // buffers TODO (keep them?)
-  float *positions, *speeds, *food, *next_food, *enemy, *next_enemy;
-  float next_food_fitness, next_enemy_fitness;
+  float *positions, *speeds;
 
   // tmp buffers (in order to not allocate and deallocate memory)
-  float *cumulated_pos, *average_speed, *S, *A, *C, *F, *E, *W, *delta_pos;
+  float *S, *A, *C, *F, *E, *W, *delta_pos;
 } Dragonfly;
 
-Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
+Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
                         unsigned int iterations, float space_size,
                         Weights weights,
                         float (*fitness)(float *, unsigned int));
 void dragonfly_alloc(Dragonfly *d);
 void dragonfly_free(Dragonfly d);
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
-                            float *cumulated_pos);
+                            float *cumulated_pos, float * food, float * enemy);
 
 #endif
