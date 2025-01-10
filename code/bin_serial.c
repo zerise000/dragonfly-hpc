@@ -10,37 +10,11 @@
 float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
                          unsigned int iter);
 
-typedef struct{
-  unsigned int n, chunks, iterations, dim;
-
-
-} Parameters;
-
-Parameters parameter_parse(int argc, char* argv[]){
-  Parameters p;
-  if(argc!=5){
-    fprintf(stderr, "invalid parameter count: expected n, chunks, iterations, dimensions");
-    exit(-1);
-  }
-  p.n=atoi(argv[1]);
-  p.chunks=atoi(argv[2]);
-  p.iterations=atoi(argv[3]);
-  p.dim=atoi(argv[4]);
-  if(p.n==0 || p.chunks==0 || p.iterations==0 || p.dim==0){
-    fprintf(stderr, "invalid parameter they must be all bigger than 1 (and integers)");
-    exit(-1);
-  }
-  if((p.chunks&(p.chunks-1))!=0){
-    fprintf(stderr, "chunk must be a power of two");
-    exit(-1);
-  }
-  return p;
-};
-
 int main(int argc, char* argv[]) {
-  // take input
+  // start clock
   clock_t start_time;
   start_time=clock();
+
   // set parameters
   Parameters p = parameter_parse(argc, argv);
   Fitness fitness = rastrigin_fitness;
@@ -57,6 +31,7 @@ int main(int argc, char* argv[]) {
       .max_speedl = {0.1, 0.03},
   };
   
+
   Dragonfly *d = malloc(sizeof(Dragonfly) * p.chunks);
 
   for (unsigned int i = 0; i < p.chunks; i++) {
@@ -74,7 +49,7 @@ int main(int argc, char* argv[]) {
   free(d);
 
   float fit = fitness(res, p.dim);
-
+  
   printf("found fitness=%f\n", fit);
   for (unsigned int i = 0; i < p.dim; i++) {
     printf("%f\n", res[i]);
@@ -99,6 +74,7 @@ void raw_sendrecv(Message *send, unsigned int destination, Message *recv_buffer,
   // send should not be needed
   *recv_buffer = data[source + raw_sendrecv_shift];
 }
+
 
 // take timing not including IO
 float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
@@ -126,42 +102,8 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
     }
     // compute avarage speed and positions
     for (unsigned int j = 0; j < chunks; j++) {
-      zeroed(messages[j].cumulated_pos, dim);
-      zeroed(messages[j].cumulated_speeds, dim);
-      memcpy(messages[j].next_enemy, d[j].positions, sizeof(float) * dim);
-      memcpy(messages[j].next_food, d[j].positions, sizeof(float) * dim);
-      messages[j].next_enemy_fitness =
-          d[j].fitness(messages[j].next_enemy, dim);
-      messages[j].next_food_fitness = d[j].fitness(messages[j].next_food, dim);
-      messages[j].n = 0;
-      for (unsigned int k = 0; k < d[j].N; k++) {
-        float *cur_pos = d[j].positions + dim * k;
-        sum_assign(messages[j].cumulated_pos, cur_pos, dim);
-        sum_assign(messages[j].cumulated_speeds, d[j].speeds + dim * k, dim);
-        float fitness = d[j].fitness(cur_pos, dim);
-        if (fitness > messages[j].next_food_fitness) {
-          memcpy(messages[j].next_food, cur_pos, sizeof(float) * dim);
-          messages[j].next_food_fitness = fitness;
-        }
-        if (fitness < messages[j].next_enemy_fitness) {
-          memcpy(messages[j].next_enemy, cur_pos, sizeof(float) * dim);
-          messages[j].next_enemy_fitness = fitness;
-        }
-        if (fitness > best_fitness) {
-          printf("new best = %f (%d)\n", fitness, i);
-          memcpy(best, cur_pos, sizeof(float) * dim);
-          best_fitness = fitness;
-        }
-        messages[j].n += 1;
-      }
+      message_acumulate(&messages[j], &d[j], best, &best_fitness);
     }
-
-    /*
-    if(joint_chunks<=2 && (i==100 || i==300)){
-      for(int l=0; l<chunks; l++){
-        printf("pre chunk (%d %d)%f %f f %f %f\n", i, l, messages[l].cumulated_pos[0], messages[l].cumulated_speeds[0], messages[l].next_food_fitness, messages[l].next_food[0]);
-       }
-    }*/
 
     // computed, then broadcast to others
 
@@ -174,11 +116,6 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
         message_broadcast(&messages[j], j, s, messages, dim, raw_sendrecv);
       }
     }
-    /*if(joint_chunks<=2&& (i==100 || i==300)){
-      for(int l=0; l<chunks; l++){
-        printf("after chunk (%d %d)%f %f f %f %f \n", i, l, messages[l].cumulated_pos[0], messages[l].cumulated_speeds[0], messages[l].next_food_fitness, messages[l].next_food[0]);
-      }
-    }*/
 
     // prepare and compute step
     for (unsigned int j = 0; j < chunks; j++) {
@@ -189,19 +126,26 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
                              messages[j].next_enemy, messages[j].n);
     }
   }
-  free(messages);
+  
   // check last iteration
   for (unsigned int i = 0; i < chunks; i++) {
-    for (unsigned int j = 0; j < d[i].N; j++) {
-      float *cur_pos = d[i].positions + j * dim;
-      float fitness = d[i].fitness(cur_pos, dim);
-      if (fitness > best_fitness) {
-        printf("found fit %f\n", fitness);
-        memcpy(best, cur_pos, sizeof(float) * dim);
-        best_fitness = fitness;
+    message_acumulate(&messages[i], &d[i], best, &best_fitness);
+  }
+  if(best_fitness>messages[0].next_food_fitness){
+    memcpy(messages[0].next_food, best, dim*sizeof(float));
+    messages[0].next_food_fitness=best_fitness;
+  }
+  for (unsigned int i = 0; i < chunks; i++) {
+    for (unsigned int s = 1; s < chunks; s *= 2) {
+      memcpy(((void *)messages) + sizeof(Message) * chunks, messages,
+             sizeof(Message) * chunks);
+      for (unsigned int j = 0; j < chunks; j++) {
+        message_broadcast(&messages[j], j, s, messages, dim, raw_sendrecv);
       }
     }
   }
+  memcpy(best, messages[0].next_food, dim*sizeof(float));
+  free(messages);
   return best;
 }
 

@@ -29,14 +29,15 @@ typedef struct {
   float *S, *A, *C, *F, *E, *W, *delta_pos, *levy;
 } Dragonfly;
 
-Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
+Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
+                        unsigned int chunks, unsigned int chunk_id,
                         unsigned int iterations, float space_size,
-                        Weights weights,
-                        Fitness fitness);
+                        Weights weights, Fitness fitness);
 void dragonfly_alloc(Dragonfly *d);
 void dragonfly_free(Dragonfly d);
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
-                            float *cumulated_pos, float * food, float * enemy, unsigned int N);
+                            float *cumulated_pos, float *food, float *enemy,
+                            unsigned int N);
 
 typedef struct {
   float cumulated_pos[50];
@@ -50,9 +51,19 @@ typedef struct {
   unsigned int n;
 } Message;
 
+typedef struct {
+  unsigned int n, chunks, iterations, dim;
+
+} Parameters;
+
+Parameters parameter_parse(int argc, char *argv[]);
+
 void message_broadcast(Message *my_value, unsigned int i, unsigned int incr,
                        void *data, int dim,
                        void (*raw_sendrecv)(Message *, unsigned int, Message *,
                                             unsigned int, void *));
-                                            
+
+void message_acumulate(Message *message, Dragonfly *d, float *best,
+                       float *best_fitness);
+
 #endif

@@ -3,6 +3,28 @@
 #include "string.h"
 #include "utils.h"
 #include <stdbool.h>
+#include <stdio.h>
+
+Parameters parameter_parse(int argc, char* argv[]){
+  Parameters p;
+  if(argc!=5){
+    fprintf(stderr, "invalid parameter count: expected n, chunks, iterations, dimensions");
+    exit(-1);
+  }
+  p.n=atoi(argv[1]);
+  p.chunks=atoi(argv[2]);
+  p.iterations=atoi(argv[3]);
+  p.dim=atoi(argv[4]);
+  if(p.n==0 || p.chunks==0 || p.iterations==0 || p.dim==0){
+    fprintf(stderr, "invalid parameter they must be all bigger than 1 (and integers)");
+    exit(-1);
+  }
+  if((p.chunks&(p.chunks-1))!=0){
+    fprintf(stderr, "chunk must be a power of two");
+    exit(-1);
+  }
+  return p;
+};
 
 void weights_compute_steps(Weights *w, unsigned int steps) {
   w->st = (w->sl[1] - w->sl[0]) / (float)steps;
@@ -188,4 +210,35 @@ void message_broadcast(Message *my_value, unsigned int i, unsigned int incr,
     my_value->next_enemy_fitness=recv_buffer.next_enemy_fitness;
   }
   my_value->n += recv_buffer.n;
+}
+
+void message_acumulate(Message *message, Dragonfly *d, float* best, float* best_fitness){
+  unsigned int dim=d->dim;
+  zeroed(message->cumulated_pos, dim);
+  zeroed(message->cumulated_speeds, dim);
+  memcpy(message->next_enemy, d->positions, sizeof(float) * dim);
+  memcpy(message->next_food, d->positions, sizeof(float) * dim);
+  message->next_enemy_fitness =
+      d->fitness(message->next_enemy, dim);
+  message->next_food_fitness = d->fitness(message->next_food, dim);
+  message->n = 0;
+  for (unsigned int k = 0; k < d->N; k++) {
+    float *cur_pos = d->positions + dim * k;
+    sum_assign(message->cumulated_pos, cur_pos, dim);
+    sum_assign(message->cumulated_speeds, d->speeds + dim * k, dim);
+    float fitness = d->fitness(cur_pos, dim);
+    if (fitness > message->next_food_fitness) {
+      memcpy(message->next_food, cur_pos, sizeof(float) * dim);
+      message->next_food_fitness = fitness;
+    }
+    if (fitness < message->next_enemy_fitness) {
+      memcpy(message->next_enemy, cur_pos, sizeof(float) * dim);
+      message->next_enemy_fitness = fitness;
+    }
+    if (fitness > *best_fitness) {
+      memcpy(best, cur_pos, sizeof(float) * dim);
+      *best_fitness = fitness;
+    }
+    message->n += 1;
+  }
 }
