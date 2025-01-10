@@ -49,7 +49,7 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
   float *best = malloc(sizeof(float) * dim);
   memcpy(best, d->positions, dim * sizeof(float));
   float best_fitness = d->fitness(best, dim);
-  printf("starting fitness %f\n", best_fitness);
+  //printf("starting fitness %f\n", best_fitness);
 
   unsigned int joint_chunks = 1;
   int log_chunks = 0;
@@ -65,7 +65,6 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
   // for each iteration
   for (unsigned int i = 0; i < iter; i++) {
     if (i != 0 && i % update_chunk_steps == 0) {
-      printf("update\n");
       joint_chunks *= 2;
     }
     // compute avarage speed and positions
