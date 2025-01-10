@@ -3,7 +3,6 @@
 #include "string.h"
 #include "utils.h"
 #include <stdbool.h>
-#include <stdio.h>
 
 void weights_compute_steps(Weights *w, unsigned int steps) {
   w->st = (w->sl[1] - w->sl[0]) / (float)steps;
@@ -18,8 +17,13 @@ void weights_compute_steps(Weights *w, unsigned int steps) {
 
   w->et = (w->el[1] - w->el[0]) / (float)steps;
   w->e = w->el[0];
+
   w->wt = (w->wl[1] - w->wl[0]) / (float)steps;
   w->w = w->wl[0];
+
+  w->lt = (w->ll[1] - w->ll[1]) / (float)steps;
+  w->l = w->ll[0];
+
 }
 
 void weights_step(Weights *w) {
@@ -29,6 +33,7 @@ void weights_step(Weights *w) {
   w->f += w->ft;
   w->e += w->et;
   w->w += w->wt;
+  w->l += w->lt;
 }
 
 Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
@@ -49,7 +54,6 @@ Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int ch
 
       .dim = dimensions,
       
-      .iter = iterations,
       .space_size = space_size,
       .w = weights,
       .fitness = fitness,
@@ -72,6 +76,7 @@ void dragonfly_alloc(Dragonfly *d) {
   d->F = init_array(dim, 0.0);
   d->E = init_array(dim, 0.0);
   d->W = init_array(dim, 0.0);
+  d->levy = init_array(dim, 0.0);
   d->delta_pos = init_array(dim, 0.0);
 }
 
@@ -86,6 +91,7 @@ void dragonfly_free(Dragonfly d) {
   free(d.E);
   free(d.W);
   free(d.delta_pos);
+  free(d.levy);
 }
 
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
@@ -122,6 +128,9 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     sum_assign(d->E, cur_pos, dim);
     scalar_prod_assign(d->E, d->w.e, dim);
 
+    brownian_motion(d->levy, dim);
+    
+
     // compute speed = sSi + aAi + cCi + fFi + eEi + w
     scalar_prod_assign(cur_speed, d->w.w, dim);
     sum_assign(cur_speed, d->E, dim);
@@ -129,6 +138,7 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     sum_assign(cur_speed, d->C, dim);
     sum_assign(cur_speed, d->A, dim);
     sum_assign(cur_speed, d->S, dim);
+    sum_assign(cur_speed, d->levy, dim);
     float speed = length(cur_speed, dim);
     if (speed > d->space_size / 10.0) {
       scalar_prod_assign(cur_speed, d->space_size / 10.0 / speed, dim);

@@ -10,6 +10,7 @@ void scalar_prod_assign(float *dest, float val, unsigned int size);
 float length(float *inp, unsigned int size);
 void zeroed(float *dest, unsigned int size);
 
+void brownian_motion(float* inp, unsigned int dim);
 // fitness functions
 float rastrigin_fitness(float *inp, unsigned int dim);
 float sphere_fitness(float *inp, unsigned int dim);

@@ -2,10 +2,12 @@
 #define DA_COMMON
 
 typedef struct {
-  float sl[2], al[2], cl[2], fl[2], el[2], wl[2];
-  float st, at, ct, ft, et, wt;
-  float s, a, c, f, e, w;
+  float sl[2], al[2], cl[2], fl[2], el[2], wl[2], ll[2];
+  float st, at, ct, ft, et, wt, lt;
+  float s, a, c, f, e, w, l;
 } Weights;
+
+typedef float (*Fitness)(float *, unsigned int);
 
 void weights_compute_steps(Weights *w, unsigned int steps);
 void weights_step(Weights *w);
@@ -14,23 +16,23 @@ typedef struct {
   // dimensions of the problem
   unsigned int dim;
   float space_size;
-  float (*fitness)(float *, unsigned int);
+  Fitness fitness;
   Weights w;
   // for how many dragonflies? problem definition
   // N is the chunk_size, not the problem size
-  unsigned int N, iter, chunks, chunks_id;
+  unsigned int N, chunks, chunks_id;
 
   // buffers TODO (keep them?)
   float *positions, *speeds;
 
   // tmp buffers (in order to not allocate and deallocate memory)
-  float *S, *A, *C, *F, *E, *W, *delta_pos;
+  float *S, *A, *C, *F, *E, *W, *delta_pos, *levy;
 } Dragonfly;
 
 Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
                         unsigned int iterations, float space_size,
                         Weights weights,
-                        float (*fitness)(float *, unsigned int));
+                        Fitness fitness);
 void dragonfly_alloc(Dragonfly *d);
 void dragonfly_free(Dragonfly d);
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,

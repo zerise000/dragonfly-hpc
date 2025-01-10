@@ -1,14 +1,16 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -o -fsanitize=address -std=c11
+CFLAGS=-Wall -Wextra -o -fsanitize=address -std=c11 -O3
 DLL=-lm 
 
-serial.bin: main.c utils.c dragonfly-common.c
+all: serial.bin openmpi.bin mpich.bin
+
+serial.bin: bin_serial.c utils.c dragonfly-common.c
 	@$(CC) $(CFLAGS) -o $@ $^ $(DLL) 
 
-openmpi.bin: openmpi.c utils.c parallel-utils.c
+openmpi.bin: bin_openmpi.c utils.c parallel-utils.c
 	@$(CC) $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
 
-mpich.bin: mpich.c utils.c dragonfly-common.c
+mpich.bin: bin_mpich.c utils.c dragonfly-common.c
 	mpicc $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
 
 .PHONY clean: 

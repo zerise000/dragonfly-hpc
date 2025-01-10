@@ -41,13 +41,22 @@ float length(float *inp, unsigned int size) {
   }
   return sqrt(ret);
 }
+
 float sigma(float beta) {
   return tgamma(beta + 1) * sin(beta * M_PI / 2) / tgamma((beta + 1) / 2) *
          beta * pow(2, (beta - 1) / 2);
 }
+
 float levy() {
   float beta = 4.25;
   return 0.01 * (RAND_FLOAT(1) * sigma(beta) / pow(RAND_FLOAT(1), 1 / beta));
+}
+
+void brownian_motion(float* inp, unsigned int dim){
+  for(unsigned int i=0; i<dim; i++){
+    inp[i]=RAND_FLOAT(1.0);
+  }
+
 }
 
 float rastrigin_fitness(float *inp, unsigned int dim) {
