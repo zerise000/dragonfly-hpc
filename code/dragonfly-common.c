@@ -21,9 +21,11 @@ void weights_compute_steps(Weights *w, unsigned int steps) {
   w->wt = (w->wl[1] - w->wl[0]) / (float)steps;
   w->w = w->wl[0];
 
-  w->lt = (w->ll[1] - w->ll[1]) / (float)steps;
+  w->lt = (w->ll[1] - w->ll[0]) / (float)steps;
   w->l = w->ll[0];
 
+  w->max_speedt = (w->max_speedl[1] - w->max_speedl[1]) / (float)steps;
+  w->max_speed = w->max_speedl[0];
 }
 
 void weights_step(Weights *w) {
@@ -34,6 +36,7 @@ void weights_step(Weights *w) {
   w->e += w->et;
   w->w += w->wt;
   w->l += w->lt;
+  w->max_speed += w->max_speedt;
 }
 
 Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
@@ -95,7 +98,7 @@ void dragonfly_free(Dragonfly d) {
 }
 
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
-                            float *cumulated_pos, float * food, float * enemy) {
+                            float *cumulated_pos, float * food, float * enemy, unsigned int N) {
   unsigned int dim = d->dim;
   // for each dragonfly
   for (unsigned int j = 0; j < d->N; j++) {
@@ -104,7 +107,7 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
 
     // compute separation: Si = -sumall(X-Xi)
     memcpy(d->S, cur_pos, sizeof(float) * dim);
-    scalar_prod_assign(d->S, -(float)d->N, dim);
+    scalar_prod_assign(d->S, -(float)N, dim);
     sum_assign(d->S, cumulated_pos, dim);
     scalar_prod_assign(d->S, d->w.s, dim);
 
@@ -114,7 +117,7 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
 
     // compute cohesion: Ci = avarage(Xi)-X
     memcpy(d->C, cumulated_pos, sizeof(float) * dim);
-    scalar_prod_assign(d->C, 1.0 / (float)d->N, dim);
+    scalar_prod_assign(d->C, 1.0 / (float)N, dim);
     sub_assign(d->C, cur_pos, dim);
     scalar_prod_assign(d->C, d->w.c, dim);
 
@@ -140,8 +143,8 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     sum_assign(cur_speed, d->S, dim);
     sum_assign(cur_speed, d->levy, dim);
     float speed = length(cur_speed, dim);
-    if (speed > d->space_size / 10.0) {
-      scalar_prod_assign(cur_speed, d->space_size / 10.0 / speed, dim);
+    if (speed > d->w.max_speed) {
+      scalar_prod_assign(cur_speed, d->w.max_speed / speed , dim);
     }
     
     

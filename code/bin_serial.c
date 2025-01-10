@@ -46,14 +46,15 @@ int main(int argc, char* argv[]) {
   Fitness fitness = rastrigin_fitness;
   Weights w = {
       // exploring
-      .al = {0.2, 0.01},
-      .cl = {0.01, 0.2},
+      .al = {0.3, 0.00},
+      .cl = {0.00, 0.3},
       // swarming
-      .sl = {0.1, 0.1},
+      .sl = {0.4, 0.0},
       .fl = {0.7, 0.7},
       .el = {0.0, 0.0},
       .wl = {0.8, 0.8},
-      .ll = {0.2, 0.2},
+      .ll = {0.2, 0.3},
+      .max_speedl = {0.1, 0.03},
   };
   
   Dragonfly *d = malloc(sizeof(Dragonfly) * p.chunks);
@@ -147,13 +148,20 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
           messages[j].next_enemy_fitness = fitness;
         }
         if (fitness > best_fitness) {
-
+          printf("new best = %f (%d)\n", fitness, i);
           memcpy(best, cur_pos, sizeof(float) * dim);
           best_fitness = fitness;
         }
         messages[j].n += 1;
       }
     }
+
+    /*
+    if(joint_chunks<=2 && (i==100 || i==300)){
+      for(int l=0; l<chunks; l++){
+        printf("pre chunk (%d %d)%f %f f %f %f\n", i, l, messages[l].cumulated_pos[0], messages[l].cumulated_speeds[0], messages[l].next_food_fitness, messages[l].next_food[0]);
+       }
+    }*/
 
     // computed, then broadcast to others
 
@@ -166,6 +174,11 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
         message_broadcast(&messages[j], j, s, messages, dim, raw_sendrecv);
       }
     }
+    /*if(joint_chunks<=2&& (i==100 || i==300)){
+      for(int l=0; l<chunks; l++){
+        printf("after chunk (%d %d)%f %f f %f %f \n", i, l, messages[l].cumulated_pos[0], messages[l].cumulated_speeds[0], messages[l].next_food_fitness, messages[l].next_food[0]);
+      }
+    }*/
 
     // prepare and compute step
     for (unsigned int j = 0; j < chunks; j++) {
@@ -173,7 +186,7 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
                          1.0 / (float)messages[j].n, dim);
       dragonfly_compute_step(&d[j], messages[j].cumulated_speeds,
                              messages[j].cumulated_pos, messages[j].next_food,
-                             messages[j].next_enemy);
+                             messages[j].next_enemy, messages[j].n);
     }
   }
   free(messages);
