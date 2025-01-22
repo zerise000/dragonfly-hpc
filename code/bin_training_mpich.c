@@ -37,7 +37,7 @@ float eval(float *wi, unsigned int d) {
 
   Fitness fitness = shifted_fitness;
   float avg = 0.0;
-  int N = 40;
+  int N = 50;
   for (int i = 0; i < N; i++) {
     //printf("run %d\n", i);
     unsigned int seed = rand();
@@ -74,7 +74,7 @@ int main() {
 
   srand(time(NULL) + rank);
   Fitness fitness = eval;
-  Parameters p = {.n = 8, .dim = 16, .chunks = 8, .iterations = 2};
+  Parameters p = {.n = 64, .dim = 16, .chunks = 64, .iterations = 10};
   /*float best[16] = {
       0.0,      0.05, 0.12, 0.33, 0.000000, 0.04, 0.85, 0.95,
       0.000000, 0.0,  0.86, 0.41, 0.05,     0.19, 2.4,  1.4,
@@ -112,7 +112,7 @@ int main() {
   
 
   if (rank == 0) {
-    printf("end, evaluating");
+    //printf("end, evaluating");
     float fit = fitness(res, p.dim);
     printf("found fitness=%f\n", fit);
     for (unsigned int i = 0; i < p.dim; i++) {

@@ -1,4 +1,4 @@
-#include <stddef.h>
+#import <stddef.h>
 #include "dragonfly-common.h"
 
 #include "utils.h"
@@ -118,7 +118,7 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
   //Message *messages = malloc(sizeof(Message) * chunks);
   // for each iteration
   for (unsigned int i = 0; i < iter; i++) {
-    printf("starting iter %d\n", i);
+    //printf("starting iter %d\n", i);
     if (i != 0 && i % update_chunk_steps == 0) {
       joint_chunks *= 2;
     }
