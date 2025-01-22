@@ -1,3 +1,4 @@
+#import <stddef.h>
 #include "dragonfly-common.h"
 
 #include "utils.h"
@@ -8,7 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#import <stddef.h>
+
 
 float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
                          unsigned int iter);
