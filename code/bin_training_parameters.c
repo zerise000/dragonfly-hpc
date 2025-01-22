@@ -27,7 +27,7 @@ float eval(float *wi){
 
   Fitness fitness = shifted_fitness;
   float avg=0.0;
-  int N = 10;
+  int N = 50;
   for(int i =0; i<N; i++){
     unsigned int seed = rand();
 
@@ -54,19 +54,21 @@ int main(){
     /*
     Weights w = {
       // exploring
-      .al = {0.3, 0.00},
-      .cl = {0.00, 0.3},
+      .al = {0.0, 0.00},
+      .cl = {0.00, 0.45},
       // swarming
-      .sl = {0.4, 0.0},
-      .fl = {0.7, 0.7},
+      .sl = {0.0, 0.0},
+      .fl = {0.7, 0.9},
       .el = {0.0, 0.0},
-      .wl = {0.9, 0.2},
-      .ll = {0.2, 0.3},
-      .max_speedl = {2.0, 2.0},
+      .wl = {0.9, 0.4},
+      .ll = {0.11, 0.3},
+      .max_speedl = {1.7, 2.15
   };
     */
-    float best[16] = {0.3, 0.0, 0.0, 0.3, 0.4, 0.0, 0.7, 0.7, 0.0, 0.0, 0.9, 0.2, 0.2, 0.3, 2.0, 2.0};
+    srand(time(NULL));
+    float best[16] = {0.0, 0.05, 0.12, 0.33, 0.000000, 0.04, 0.85, 0.95, 0.000000, 0.0, 0.86, 0.41, 0.05, 0.19, 2.4, 1.4,};
     float best_fitness = eval(best);
+    printf("starting: %f\n", best_fitness);
     float cur[16];
     unsigned int seed = rand();
     while(true){
@@ -85,7 +87,7 @@ int main(){
             best_fitness=fit;
             printf("New min %f\n", best_fitness);
             for(int i=0; i<16; i++){
-                printf("%f ", cur[i]);
+                printf("%f, ", cur[i]);
             }
             printf("\n");
             memcpy(best, cur, sizeof(float)*16);
