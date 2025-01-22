@@ -18,10 +18,10 @@ int main(int argc, char *argv[]) {
 
   // set parameters
   Parameters p = parameter_parse(argc, argv);
-  unsigned int seed=0;
+  unsigned int seed=time(NULL);
   float *shifted_tmp = malloc(sizeof(float)*p.dim);
   float *shifted_rotation = malloc(sizeof(float)*p.dim*p.dim);
-  float *shifted_shift = malloc(sizeof(float)*p.dim);//init_array(p.dim, 100.0, &seed);
+  float *shifted_shift = init_array(p.dim, 100.0, &seed);
   init_matrix(shifted_rotation, 100.0, p.dim, &seed);
 
   init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift, rastrigin_fitness);
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
   /* prev 6051
 New min -1501.983276
 0.029782 0.000000 0.000000 0.449445 0.037076 0.000000 0.710191 0.906739 0.000000 0.000000 0.894475 0.409296 0.108998 0.290697 1.693962 2.146740  */
-  float wi[16] = {0.040688, 0.000000, 0.008169, 0.280873, 0.000000, 0.023867, 0.925333, 0.965467, 0.000000, 0.000000, 0.861904, 0.418897, 0.065574, 0.245240, 2.384605, 1.377426};
+  float wi[16] = {0.017683, 0.000000, 0.020466, 0.230936, 0.023082, 0.001584, 0.950145, 0.919330, 0.001764, 0.000000, 0.882060, 0.468423, 0.089438, 0.224199, 2.336837, 1.365714};
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},

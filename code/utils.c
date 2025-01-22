@@ -76,7 +76,7 @@ void init_matrix(float *inp, float range_max, unsigned int dim, unsigned int *se
 }
 
 void matrix_times_vector(float* out, float *matrix, float *inp, unsigned int dim){
-  for(int row=0; row<dim; row++){
+  for(unsigned int row=0; row<dim; row++){
     out[row]=dot_product(matrix+row*dim, inp, dim);
   }
 }

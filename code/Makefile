@@ -11,6 +11,9 @@ serial.bin: bin_serial.c utils.c dragonfly-common.c
 training.bin: bin_training_parameters.c utils.c dragonfly-common.c
 	@$(CC) $(CFLAGS) -o $@ $^ $(DLL) 
 
+training_mpich.bin: bin_training_mpich.c utils.c dragonfly-common.c
+	mpicc $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
+
 openmpi.bin: bin_openmpi.c utils.c parallel-utils.c
 	@$(CC) $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
 

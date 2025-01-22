@@ -1,4 +1,5 @@
 #include "dragonfly-common.h"
+
 #include "utils.h"
 #include <mpi.h>
 #include <stdbool.h>
@@ -10,7 +11,7 @@
 
 float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
                          unsigned int iter);
-
+#ifndef DA_MPICH_LIB
 int main(int argc, char* argv[]) {
   MPI_Init(NULL, NULL);
   // wait for all the process to start
@@ -65,7 +66,7 @@ int main(int argc, char* argv[]) {
   free(res);
   MPI_Finalize();
 }
-
+#endif
 
 void Build_mpi_type_testsend(MPI_Datatype *data) {
   int blocklengths[7] = {50, 50, 50, 50, 1, 1, 1};
@@ -83,7 +84,7 @@ void Build_mpi_type_testsend(MPI_Datatype *data) {
   MPI_Type_commit(data);
 }
 
-void raw_sendrecv(Message *send, unsigned int destination, Message *recv_buffer,
+void raw_sendrecv_ch(Message *send, unsigned int destination, Message *recv_buffer,
                   unsigned int source, void *data_raw) {
   MPI_Datatype *data_type = data_raw;
   MPI_Sendrecv(send, 1, *data_type, destination, 0, recv_buffer, 1, *data_type,
@@ -123,7 +124,7 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
     // computed, then broadcast to others
     // execute log2(joint_chunks)
     for (unsigned int s = 1; s < joint_chunks; s *= 2) {
-      message_broadcast(&message, d->chunks_id, s, &message_type, dim, raw_sendrecv);
+      message_broadcast(&message, d->chunks_id, s, &message_type, dim, raw_sendrecv_ch);
     }
 
     // prepare and compute step
@@ -140,7 +141,7 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
     message.next_food_fitness=best_fitness;
   }
   for (unsigned int s = 1; s < chunks; s *= 2) {
-    message_broadcast(&message, d->chunks_id, s, &message_type, dim, raw_sendrecv);
+    message_broadcast(&message, d->chunks_id, s, &message_type, dim, raw_sendrecv_ch);
   }
   memcpy(best, message.next_food, dim*sizeof(float));
   
