@@ -64,7 +64,7 @@ void weights_step(Weights *w) {
 Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
                         unsigned int iterations, float space_size,
                         Weights weights,
-                        float (*fitness)(float *, unsigned int)) {
+                        float (*fitness)(float *, unsigned int), unsigned int random_seed) {
   // computes weigths progression
   unsigned int chunk_size=N/chunks;
   if (chunk_id==chunks-1){
@@ -72,6 +72,7 @@ Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int ch
     chunk_size=N-chunk_size*(chunks-1);
   }
   weights_compute_steps(&weights, iterations);
+
   Dragonfly d = {
       .chunks = chunks,
       .chunks_id = chunk_id,
@@ -82,6 +83,7 @@ Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int ch
       .space_size = space_size,
       .w = weights,
       .fitness = fitness,
+      .seed = random_seed,
   };
   return d;
 }
@@ -91,18 +93,18 @@ void dragonfly_alloc(Dragonfly *d) {
   unsigned int dim = d->dim;
   unsigned int N = d->N;
   unsigned int space_size = d->space_size;
-  d->positions = init_array(N * dim, space_size);
-  d->speeds = init_array(N * dim, space_size / 20.0);
+  d->positions = init_array(N * dim, space_size, &d->seed);
+  d->speeds = init_array(N * dim, space_size / 20.0, &d->seed);
 
 
-  d->S = init_array(dim, 0.0);
-  d->A = init_array(dim, 0.0);
-  d->C = init_array(dim, 0.0);
-  d->F = init_array(dim, 0.0);
-  d->E = init_array(dim, 0.0);
-  d->W = init_array(dim, 0.0);
-  d->levy = init_array(dim, 0.0);
-  d->delta_pos = init_array(dim, 0.0);
+  d->S = init_array(dim, 0.0, &d->seed);
+  d->A = init_array(dim, 0.0, &d->seed);
+  d->C = init_array(dim, 0.0, &d->seed);
+  d->F = init_array(dim, 0.0, &d->seed);
+  d->E = init_array(dim, 0.0, &d->seed);
+  d->W = init_array(dim, 0.0, &d->seed);
+  d->levy = init_array(dim, 0.0, &d->seed);
+  d->delta_pos = init_array(dim, 0.0, &d->seed);
 }
 
 void dragonfly_free(Dragonfly d) {
@@ -153,7 +155,7 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     sum_assign(d->E, cur_pos, dim);
     scalar_prod_assign(d->E, d->w.e, dim);
 
-    brownian_motion(d->levy, dim);
+    brownian_motion(d->levy, dim, &d->seed);
     
 
     // compute speed = sSi + aAi + cCi + fFi + eEi + w

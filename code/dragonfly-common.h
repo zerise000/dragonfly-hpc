@@ -18,6 +18,7 @@ typedef struct {
   float space_size;
   Fitness fitness;
   Weights w;
+  
   // for how many dragonflies? problem definition
   // N is the chunk_size, not the problem size
   unsigned int N, chunks, chunks_id;
@@ -27,12 +28,14 @@ typedef struct {
 
   // tmp buffers (in order to not allocate and deallocate memory)
   float *S, *A, *C, *F, *E, *W, *delta_pos, *levy;
+
+  unsigned int seed;
 } Dragonfly;
 
-Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
-                        unsigned int chunks, unsigned int chunk_id,
+Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
                         unsigned int iterations, float space_size,
-                        Weights weights, Fitness fitness);
+                        Weights weights,
+                        float (*fitness)(float *, unsigned int), unsigned int random_seed);
 void dragonfly_alloc(Dragonfly *d);
 void dragonfly_free(Dragonfly d);
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,

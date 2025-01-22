@@ -43,10 +43,8 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "chunks!=comm_size (%d!=%d)", p.chunks, comm_size);
   }
   
-  
-  srand(rank);
   Dragonfly d = dragonfly_new(p.dim, p.n, p.chunks,  rank, p.iterations, 5.0, w,
-                         fitness);
+                         fitness, rank);
   dragonfly_alloc(&d);
 
   float *res = dragonfly_compute(&d, p.chunks, p.dim, p.iterations);
@@ -123,7 +121,6 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
     // compute avarage speed and positions
     message_acumulate(&message, d, best, &best_fitness);
     // computed, then broadcast to others
-
     // execute log2(joint_chunks)
     for (unsigned int s = 1; s < joint_chunks; s *= 2) {
       message_broadcast(&message, d->chunks_id, s, &message_type, dim, raw_sendrecv);
@@ -134,10 +131,9 @@ float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
                          1.0 / (float)message.n, dim);
     dragonfly_compute_step(d, message.cumulated_speeds,
                             message.cumulated_pos, message.next_food,
-                            message.next_enemy, d->N);
+                            message.next_enemy, message.n);
   }
   // check last iteration
-
   message_acumulate(&message, d, best, &best_fitness);
   if(best_fitness>message.next_food_fitness){
     memcpy(message.next_food, best, dim*sizeof(float));
