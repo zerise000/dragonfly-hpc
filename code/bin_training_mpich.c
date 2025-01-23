@@ -62,7 +62,7 @@ float eval(float *wi, unsigned int d) {
   return avg / N;
 }
 
-int main() {
+int main(int argc, char **argv) {
   MPI_Init(NULL, NULL);
   // wait for all the process to start
   MPI_Barrier(MPI_COMM_WORLD);
@@ -74,7 +74,8 @@ int main() {
 
   srand(time(NULL) + rank);
   Fitness fitness = eval;
-  Parameters p = {.n = 512, .dim = 16, .chunks = 512, .iterations = 160};
+  Parameters p = parameter_parse(argc, argv);
+  //{.n = 512, .dim = 16, .chunks = 512, .iterations = 160};
   /*float best[16] = {
       0.0,      0.05, 0.12, 0.33, 0.000000, 0.04, 0.85, 0.95,
       0.000000, 0.0,  0.86, 0.41, 0.05,     0.19, 2.4,  1.4,
@@ -85,9 +86,25 @@ int main() {
     fprintf(stderr, "chunks!=comm_size (%d!=%d)", p.chunks, comm_size);
   }
 
-  float wi[16] = {0.017683, 0.000000, 0.020466, 0.230936, 0.023082, 0.001584,
-                  0.950145, 0.919330, 0.001764, 0.000000, 0.882060, 0.468423,
-                  0.089438, 0.224199, 0.2336837, 0.1365714};
+    float wi[16] = {
+    0.000000,
+4.967649,
+0.000000,
+0.000100,
+0.285827,
+0.000000,
+2.293534,
+2.777018,
+0.000000,
+0.000100,
+0.000000,
+0.000100,
+0.000000,
+1.027528,
+0.3797735,
+0.000000,
+
+  };
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},

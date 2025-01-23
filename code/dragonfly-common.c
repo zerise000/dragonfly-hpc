@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+// n, chunks, iterations, dim
 Parameters parameter_parse(int argc, char* argv[]){
   Parameters p;
   if(argc!=5){
