@@ -52,8 +52,8 @@ unsigned int dimensions = d->dim;
     }
 }
 	if(rest != 0){
-		unsigned int r_base = (ratio*nr_threads)+1;
-		unsigned int r_end = r_base + rest-1;
+		unsigned int r_base = ratio*nr_threads;
+		unsigned int r_end = d->N-1;
 
 		for(unsigned int j = r_base; j<=r_end; j++){
 		  float* cur_pos = d->positions+j*dimensions;
@@ -130,10 +130,10 @@ void message_acumulate(Message *message, Dragonfly *d, float* best, float* best_
 }
 
 	if(rest != 0) {
-		unsigned int r_base = (ratio*nr_threads)+1;
-		unsigned int r_end = r_base + rest-1;
+		unsigned int r_base = ratio*nr_threads;
+		unsigned int r_end = d->N-1;
 
-		for (unsigned int k = r_base ; k < r_end; k++) {
+		for (unsigned int k = r_base ; k <= r_end; k++) {
 			float *cur_pos = d->positions + dim * k;
 			sum_assign(message->cumulated_pos, cur_pos, dim);
 			sum_assign(message->cumulated_speeds, d->speeds + dim * k, dim);
