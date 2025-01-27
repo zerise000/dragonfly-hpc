@@ -1,6 +1,6 @@
 #ifndef DA_COMMON
 #define DA_COMMON
-
+#define MESSAGE_SIZE 50
 typedef struct {
   float sl[2], al[2], cl[2], fl[2], el[2], wl[2], ll[2];
   float st, at, ct, ft, et, wt, lt;
@@ -40,13 +40,14 @@ void dragonfly_alloc(Dragonfly *d);
 void dragonfly_free(Dragonfly d);
 
 
-typedef struct {
-  float cumulated_pos[50];
-  float cumulated_speeds[50];
 
-  float next_enemy[50];
+typedef struct {
+  float cumulated_pos[MESSAGE_SIZE];
+  float cumulated_speeds[MESSAGE_SIZE];
+
+  float next_enemy[MESSAGE_SIZE];
   float next_enemy_fitness;
-  float next_food[50];
+  float next_food[MESSAGE_SIZE];
   float next_food_fitness;
 
   unsigned int n;

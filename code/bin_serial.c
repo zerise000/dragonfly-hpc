@@ -77,6 +77,10 @@ void raw_sendrecv(Message *send, unsigned int destination, Message *recv_buffer,
 // take timing not including IO
 float *dragonfly_serial_compute(Parameters p, Weights w, Fitness fitness,
                                 unsigned int srand) {
+  if(MESSAGE_SIZE<p.dim){
+    fprintf(stderr, "impossible to compute with %d dimensions, recompile with a bigger MESSAGE_SIZE", p.dim);
+    exit(-1);
+  }
   if (p.chunks==0){
     fprintf(stderr, "chunks==0");
     exit(-2);

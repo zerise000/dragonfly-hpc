@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
 #endif
 
 void Build_mpi_type_testsend(MPI_Datatype *data) {
-  int blocklengths[7] = {50, 50, 50, 50, 1, 1, 1};
+  int blocklengths[7] = {MESSAGE_SIZE, MESSAGE_SIZE, MESSAGE_SIZE, MESSAGE_SIZE, 1, 1, 1};
   MPI_Datatype types[7] = {MPI_FLOAT, MPI_FLOAT, MPI_FLOAT,   MPI_FLOAT,
                            MPI_FLOAT, MPI_FLOAT, MPI_UNSIGNED};
   MPI_Aint displacements[7];
@@ -98,6 +98,10 @@ void raw_sendrecv_ch(Message *send, unsigned int destination, Message *recv_buff
 float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
                          unsigned int iter) {
 
+  if(MESSAGE_SIZE<d->dim){
+    fprintf(stderr, "impossible to compute with %d dimensions, recompile with a bigger MESSAGE_SIZE", d->dim);
+    exit(-1);
+  }
   MPI_Datatype message_type;
   Build_mpi_type_testsend(&message_type);
   float *best = malloc(sizeof(float) * dim);

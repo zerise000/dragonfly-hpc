@@ -23,4 +23,4 @@ mpich.bin: bin_mpich.c utils.c dragonfly-common.c utils-serial.c
 	mpicc $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
 
 .PHONY clean: 
-	@rm $(BINARIES)
+	@rm -f $(BINARIES)
