@@ -1,42 +1,23 @@
 #include "utils-special.h"
 #include <omp.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
-// compute init_array_parallel, 
+void dragonfly_compute_step(Dragonfly *d, float *average_speed,
+                            float *cumulated_pos, float *food, float *enemy,
+                            unsigned int N){
+unsigned int nr_threads = 2;
+unsigned int rest = d->N % nr_threads;
+unsigned int ratio = d->N / nr_threads;
+unsigned int dimensions = d->dim;
 
-
-float* init_array_parallel(unsigned int dimensions, float range_max,int nr_threads){
-
-	float *arr = (float*)malloc(dimensions*sizeof(float));
-
-#pragma omp parallel num_threads(nr_threads)
-	{
-		int ratio = dimensions/omp_get_num_threads();
-		int rank = omp_get_thread_num(); 
-		unsigned int base = ratio*rank;
-		unsigned int limit = ratio*(rank+1);
-
-#pragma omp parallel for
-		for(unsigned int i=base; i<limit; i++){
-		  arr[i] = RAND_FLOAT(range_max);
-		}
-	}
-	return arr;
-
-}
-
-
-void update(Entity* food,Entity* enemy,Temp temp,Dragonfly dragonflies,Weights weights,float space_size,unsigned int dimensions,unsigned int nr_threads, float (*fitness)(float*, unsigned int)){
 #pragma omp parallel num_threads(nr_threads)
 {
 
-	int ratio = dragonflies.dim/omp_get_num_threads();
-	int rank = omp_get_thread_num(); 
+	unsigned int rank = omp_get_thread_num(); 
 	unsigned int base = ratio*rank;
 	unsigned int limit = ratio*(rank+1);
 
-	float cumulative_length;
 	float S;
 	float A;
 	float C;
@@ -47,87 +28,130 @@ void update(Entity* food,Entity* enemy,Temp temp,Dragonfly dragonflies,Weights w
 	float* cur_speed;
 
     for(unsigned int j=base; j<limit;j++){
-	  cur_pos = dragonflies.positions+j*dimensions;
-	  cur_speed = dragonflies.speeds+j*dimensions;
+	  cur_pos = d->positions+j*dimensions;
+	  cur_speed = d->speeds+j*dimensions;
 
-	  cumulative_length = 0;
 
       //compute speed = sSi + aAi + cCi + fFi + eEi + w
-      scalar_prod_assign(cur_speed, weights.w, dimensions);
+      scalar_prod_assign(cur_speed, d->w.w, dimensions);
 
 	  for(unsigned int i = 0; i<dimensions; i++){
-		  S = ((-(float)dragonflies.dim)*cur_pos[i])+(temp.cumulated_pos[i]);
-		  A = temp.average_speed[i];
-		  C = temp.cumulated_pos[i]*(1/dragonflies.dim);
-		  F = food->pos[i]-cur_pos[i];
-		  E = enemy->pos[i]+cur_pos[i];
+		  S = ((-(float)N)*cur_pos[i])+(cumulated_pos[i]);
+		  A = average_speed[i];
+		  C = cumulated_pos[i]*(1.0/(float)N);
+		  F = food[i]-cur_pos[i];
+		  E = enemy[i]+cur_pos[i];
 
-		  cur_speed[i] += weights.s*S;
-		  cur_speed[i] += weights.a*A;
-		  cur_speed[i] += weights.c*C;
-		  cur_speed[i] += weights.f*F;
-		  cur_speed[i] += weights.e*E;
+		  cur_speed[i] += d->w.s*S;
+		  cur_speed[i] += d->w.a*A;
+		  cur_speed[i] += d->w.c*C;
+		  cur_speed[i] += d->w.f*F;
+		  cur_speed[i] += d->w.e*E;
 
-		  cumulative_length += pow(cur_speed[i],2);
 	  }
-
-	  cumulative_length = sqrt(cumulative_length);
-
-      //check if speed is too big
-      if (cumulative_length>space_size/10.0){
-        float speed = cumulative_length; 
-        scalar_prod_assign(cur_speed, space_size/10.0/speed, dimensions);
-      }
-
-
-      //update current pos
-      sum_assign(cur_pos, cur_speed, dimensions);
-      float fit = fitness(cur_pos, dimensions);
-
-      //printf("%f\n", fit);
-      if(fit<enemy->next_fitness){
-        enemy->next_fitness=fit;
-        memcpy(enemy->next, cur_pos, dimensions*sizeof(float));
-      }
-
-      if(fit>food->next_fitness){
-        food->next_fitness=fit;
-        memcpy(food->next, cur_pos, dimensions*sizeof(float));
-      }
     }
 }
+	if(rest != 0){
+		unsigned int r_base = (ratio*nr_threads)+1;
+		unsigned int r_end = r_base + rest-1;
+
+		for(unsigned int j = r_base; j<=r_end; j++){
+		  float* cur_pos = d->positions+j*dimensions;
+		  float* cur_speed = d->speeds+j*dimensions;
+
+		  //compute speed = sSi + aAi + cCi + fFi + eEi + w
+		  scalar_prod_assign(cur_speed, d->w.w, dimensions);
+
+		  for(unsigned int i = 0; i<dimensions; i++){
+			  float S = ((-(float)N)*cur_pos[i])+(cumulated_pos[i]);
+			  float A = average_speed[i];
+			  float C = cumulated_pos[i]*(1.0/(float)N);
+			  float F = food[i]-cur_pos[i];
+			  float E = enemy[i]+cur_pos[i];
+
+			  cur_speed[i] += d->w.s*S;
+			  cur_speed[i] += d->w.a*A;
+			  cur_speed[i] += d->w.c*C;
+			  cur_speed[i] += d->w.f*F;
+			  cur_speed[i] += d->w.e*E;
+
+		  }
+		}
+	}
+
+  	weights_step(&d->w);
 
 }
 
-void parallel_sum(Temp* tmp_buffs,Dragonfly dragonflies,unsigned int N,unsigned int dimensions,unsigned int tot_threads){
-    zeroed(tmp_buffs->cumulated_pos, dimensions);
-    zeroed(tmp_buffs->average_speed, dimensions);
+void message_acumulate(Message *message, Dragonfly *d, float* best, float* best_fitness){
+  unsigned int dim=d->dim;
+  unsigned int nr_threads = 2;
+  unsigned int rest = d->N % nr_threads;
+  unsigned int ratio = d->N / nr_threads;
 
-#pragma omp parallel num_threads(tot_threads)
-	{
-		float local_cumulated_pos[dimensions];
-		float local_average_speed[dimensions];
-		int rank = omp_get_thread_num();
-		int ratio = N/tot_threads;
 
-		int base = ratio*rank;
-		unsigned int limit = ratio*(rank+1);
+  zeroed(message->cumulated_pos, dim);
+  zeroed(message->cumulated_speeds, dim);
+  memcpy(message->next_enemy, d->positions, sizeof(float) * dim);
+  memcpy(message->next_food, d->positions, sizeof(float) * dim);
+  message->next_enemy_fitness =
+      d->fitness(message->next_enemy, dim);
+  message->next_food_fitness = d->fitness(message->next_food, dim);
+  message->n = 0;
 
-    	for(unsigned int j=base; j<limit; j++){
-			float* curr_pos = dragonflies.positions+dimensions*j;
-			float* curr_speed = dragonflies.speeds+dimensions*j;
 
-			for(unsigned int k=0; k<dimensions; k++){
-				local_cumulated_pos[k] += curr_pos[k];
-				local_average_speed[k] += curr_speed[k];
-			}
-		}   
-#pragma omp critical
-		{
-			for(unsigned int j=0; j<dimensions; j++){
-				tmp_buffs->cumulated_pos[j] = local_cumulated_pos[j];
-				tmp_buffs->average_speed[j] = local_average_speed[j]*(1/N);
-			}
+#pragma omp parallel num_threads(nr_threads)
+{
+	int rank = omp_get_thread_num(); 
+	unsigned int base = ratio*rank;
+	unsigned int limit = ratio*(rank+1);
+
+	for (unsigned int k = base; k < limit; k++) {
+		float *cur_pos = d->positions + dim * k;
+		sum_assign(message->cumulated_pos, cur_pos, dim);
+		sum_assign(message->cumulated_speeds, d->speeds + dim * k, dim);
+
+		float fitness = d->fitness(cur_pos, dim);
+		if (fitness > message->next_food_fitness) {
+		  memcpy(message->next_food, cur_pos, sizeof(float) * dim);
+		  message->next_food_fitness = fitness;
 		}
- 	}
+		if (fitness < message->next_enemy_fitness) {
+		  memcpy(message->next_enemy, cur_pos, sizeof(float) * dim);
+		  message->next_enemy_fitness = fitness;
+		}
+		if (fitness > *best_fitness) {
+		  memcpy(best, cur_pos, sizeof(float) * dim);
+		  *best_fitness = fitness;
+		}
+
+		message->n += 1;
+	}
+}
+
+	if(rest != 0) {
+		unsigned int r_base = (ratio*nr_threads)+1;
+		unsigned int r_end = r_base + rest-1;
+
+		for (unsigned int k = r_base ; k < r_end; k++) {
+			float *cur_pos = d->positions + dim * k;
+			sum_assign(message->cumulated_pos, cur_pos, dim);
+			sum_assign(message->cumulated_speeds, d->speeds + dim * k, dim);
+			float fitness = d->fitness(cur_pos, dim);
+			if (fitness > message->next_food_fitness) {
+			  memcpy(message->next_food, cur_pos, sizeof(float) * dim);
+			  message->next_food_fitness = fitness;
+			}
+			if (fitness < message->next_enemy_fitness) {
+			  memcpy(message->next_enemy, cur_pos, sizeof(float) * dim);
+			  message->next_enemy_fitness = fitness;
+			}
+			if (fitness > *best_fitness) {
+			  memcpy(best, cur_pos, sizeof(float) * dim);
+			  *best_fitness = fitness;
+			}
+			message->n += 1;
+		}
+	}
+
 }

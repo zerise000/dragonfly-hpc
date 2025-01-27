@@ -1,7 +1,9 @@
 #ifndef DA_PARALLEL
 #define DA_PARALLEL
 #include"dragonfly-common.h"
-float *init_array(unsigned int dimensions, float range_max, unsigned int *seed);
+#include <string.h>
+#include <stdlib.h>
+#include"utils.h"
 
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float *food, float *enemy,

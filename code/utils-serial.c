@@ -1,21 +1,4 @@
-
-#include <stdlib.h>
-#include <string.h>
-
-#include"utils.h"
 #include"utils-special.h"
-#include"dragonfly-common.h"
-
-float *init_array(unsigned int dimensions, float range_max, unsigned int *seed) {
-  unsigned int s=2;
-  rand_r(&s);
-  float *arr = malloc(dimensions * sizeof(float));
-  for (unsigned int i = 0; i < dimensions; i++) {
-    arr[i] = RAND_FLOAT(range_max, seed);
-  }
-  return arr;
-}
-
 
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float * food, float * enemy, unsigned int N) {
