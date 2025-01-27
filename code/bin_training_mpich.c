@@ -12,7 +12,7 @@
 #include "bin_mpich.c"
 
 float eval(float *wi, unsigned int d) {
-    for(int i=0; i<16; i++){
+    for(int i=0; i<14; i++){
         if(wi[i]<0.0){
             wi[i]=0.0;
         }
@@ -31,7 +31,6 @@ float eval(float *wi, unsigned int d) {
       .el = {wi[8], wi[9]},
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
-      .max_speedl = {wi[14], wi[15]},
   };
   Parameters p = {.n = 100, .dim = 10, .chunks = 8, .iterations = 1000};
 
@@ -101,8 +100,6 @@ int main(int argc, char **argv) {
 0.000100,
 0.000000,
 1.027528,
-0.3797735,
-0.000000,
 
   };
   /*
@@ -129,7 +126,6 @@ int main(int argc, char **argv) {
       .el = {wi[8], wi[9]},
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
-      .max_speedl = {wi[14], wi[15]},
   };
   Dragonfly d = dragonfly_new(p.dim, p.n, p.chunks, rank, p.iterations, 5.0, w,
                               fitness, rank);

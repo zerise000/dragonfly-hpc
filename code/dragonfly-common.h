@@ -2,9 +2,9 @@
 #define DA_COMMON
 
 typedef struct {
-  float sl[2], al[2], cl[2], fl[2], el[2], wl[2], ll[2], max_speedl[2];
-  float st, at, ct, ft, et, wt, lt, max_speedt;
-  float s, a, c, f, e, w, l, max_speed;
+  float sl[2], al[2], cl[2], fl[2], el[2], wl[2], ll[2];
+  float st, at, ct, ft, et, wt, lt;
+  float s, a, c, f, e, w, l;
 } Weights;
 
 typedef float (*Fitness)(float *, unsigned int);
@@ -38,9 +38,7 @@ Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int ch
                         float (*fitness)(float *, unsigned int), unsigned int random_seed);
 void dragonfly_alloc(Dragonfly *d);
 void dragonfly_free(Dragonfly d);
-void dragonfly_compute_step(Dragonfly *d, float *average_speed,
-                            float *cumulated_pos, float *food, float *enemy,
-                            unsigned int N);
+
 
 typedef struct {
   float cumulated_pos[50];
@@ -65,8 +63,5 @@ void message_broadcast(Message *my_value, unsigned int i, unsigned int incr,
                        void *data, int dim,
                        void (*raw_sendrecv)(Message *, unsigned int, Message *,
                                             unsigned int, void *));
-
-void message_acumulate(Message *message, Dragonfly *d, float *best,
-                       float *best_fitness);
 
 #endif

@@ -1,11 +1,13 @@
-#include "dragonfly-common.h"
-#include "utils.h"
 #include <mpi.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include "utils.h"
+#include "dragonfly-common.h"
+#include "utils-special.h"
 
 float *dragonfly_serial_compute(Parameters p, Weights w, Fitness f,
                                 unsigned int srand);
@@ -28,29 +30,10 @@ int main(int argc, char *argv[]) {
                        rastrigin_fitness);
 
   Fitness fitness = shifted_fitness;
-  /* prev 6051
-New min -941
-0.000000
-4.967649
-0.000000
-0.000100
-0.285827
-0.000000
-2.293534
-2.777018
-0.000000
-0.000100
-0.000000
-0.000100
-0.000000
-1.027528
-3.797735
-0.000000
- */
-  float wi[16] = {
-      0.000000, 4.967649, 0.000000, 0.000100, 0.285827, 0.000000,
-      2.293534, 2.777018, 0.000000, 0.000100, 0.000000, 0.000100,
-      0.000000, 1.027528, 3.797735, 0.000000,
+
+  float wi[14] = {0.941010, 0.000000, 0.000000, 1.347089, 0.063430, 0.000000,
+                  3.548271, 2.154025, 0.000000, 0.000100, 2.139098, 3.452764,
+                  0.707045, 3.671526
 
   };
   Weights w = {
@@ -63,7 +46,6 @@ New min -941
       .el = {wi[8], wi[9]},
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
-      .max_speedl = {wi[14], wi[15]},
   };
 
   float *res = dragonfly_serial_compute(p, w, fitness, seed);
@@ -96,6 +78,10 @@ void raw_sendrecv(Message *send, unsigned int destination, Message *recv_buffer,
 // take timing not including IO
 float *dragonfly_serial_compute(Parameters p, Weights w, Fitness fitness,
                                 unsigned int srand) {
+  if (p.chunks==0){
+    fprintf(stderr, "chunks==0");
+    exit(-2);
+  }
   unsigned int dim = p.dim;
   unsigned int chunks = p.chunks;
 
@@ -108,8 +94,8 @@ float *dragonfly_serial_compute(Parameters p, Weights w, Fitness fitness,
   }
 
   float *best = malloc(sizeof(float) * dim);
-  memcpy(best, d[0].positions, dim * sizeof(float));
-  float best_fitness = d[0].fitness(best, dim);
+  memcpy(best, d->positions, dim * sizeof(float));
+  float best_fitness = d->fitness(best, dim);
   // printf("starting fitness %f\n", best_fitness);
 
   unsigned int joint_chunks = 1;

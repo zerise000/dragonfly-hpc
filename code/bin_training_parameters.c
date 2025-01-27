@@ -20,7 +20,6 @@ float eval(float *wi) {
       .el = {wi[8], wi[9]},
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
-      .max_speedl = {wi[14], wi[15]},
   };
   Parameters p = {.n = 100, .dim = 10, .chunks = 32, .iterations = 1000};
 
@@ -76,15 +75,15 @@ int main() {
 };
   */
   srand(time(NULL));
-  float best[16] = {
-      0.000000, 4.967649, 0.000000,  0.000100, 0.285827, 0.000000,
-      2.293534, 2.777018, 0.000000,  0.000100, 0.000000, 0.000100,
-      0.000000, 1.027528, 3.797735, 0.000000,
+  float best[14] = {
+      0.941010, 0.000000, 0.000000, 1.347089, 0.063430, 0.000000,
+                  3.548271, 2.154025, 0.000000, 0.000100, 2.139098, 3.452764,
+                  0.707045, 3.671526
 
   };
   float best_fitness = eval(best);
-  /*printf("starting: %f\n", best_fitness);
-  float cur[16];
+  printf("starting: %f\n", best_fitness);
+  /*float cur[16];
   unsigned int seed = rand();
   while (true) {
     for (int i = 0; i < 16; i++) {

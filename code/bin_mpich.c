@@ -1,7 +1,4 @@
 #include <stddef.h>
-#include "dragonfly-common.h"
-
-#include "utils.h"
 #include <mpi.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -9,6 +6,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+
+#include "dragonfly-common.h"
+#include "utils.h"
+#include "utils-special.h"
 
 
 float *dragonfly_compute(Dragonfly *d, unsigned int chunks, unsigned int dim,
@@ -36,7 +37,6 @@ int main(int argc, char* argv[]) {
       .el = {0.0, 0.0},
       .wl = {0.8, 0.8},
       .ll = {0.2, 0.3},
-      .max_speedl = {0.1, 0.03},
   };
   int comm_size, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);

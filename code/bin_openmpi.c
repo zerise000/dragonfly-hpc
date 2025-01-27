@@ -1,9 +1,10 @@
-#include "parallel-utils.h"
-#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include "utils.h"
+#include "utils-special.h"
 
 typedef struct Weights {
   float sl[2], al[2], cl[2], fl[2], el[2], wl[2];
@@ -194,3 +195,4 @@ int main() {
   free(res);
   return 0;
 }
+

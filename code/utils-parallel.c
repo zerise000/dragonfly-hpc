@@ -1,7 +1,10 @@
-#include "parallel-utils.h"
+#include "utils-special.h"
 #include <omp.h>
 #include <stdlib.h>
 #include <math.h>
+
+// compute init_array_parallel, 
+
 
 float* init_array_parallel(unsigned int dimensions, float range_max,int nr_threads){
 
