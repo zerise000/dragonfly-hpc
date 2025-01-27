@@ -1,6 +1,5 @@
 #include "dragonfly-common.h"
 #include "utils.h"
-#include <mpi.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
