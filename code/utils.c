@@ -4,6 +4,15 @@
 #include <string.h>
 
 
+float *init_array(unsigned int dimensions, float range_max, unsigned int *seed) {
+  unsigned int s=2;
+  rand_r(&s);
+  float *arr = malloc(dimensions * sizeof(float));
+  for (unsigned int i = 0; i < dimensions; i++) {
+    arr[i] = RAND_FLOAT(range_max, seed);
+  }
+  return arr;
+}
 
 void zeroed(float *dest, unsigned int size) {
   for (unsigned int i = 0; i < size; i++) {
