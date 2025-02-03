@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
+#include <threads.h>
+#include <unistd.h>
 #include <time.h>
 
 #include "dragonfly-common.h"
@@ -30,8 +32,8 @@ int main(int argc, char* argv[]) {
   
   Weights w = {
       // exploring
-      .al = {0.0, 0.0},
-      .cl = {0.0, 0.0},
+      .al = {0.1, 0.1},
+      .cl = {0.7, 0.7},
       // swarming
       .sl = {0.1, 0.1},
       .fl = {1.0, 1.0},
@@ -97,12 +99,6 @@ void build_mpi_type_message(MPI_Datatype *out, MPI_Datatype *computation_status)
   MPI_Type_commit(out);
 }
 
-void raw_sendrecv_ch(Message *send, unsigned int destination, Message *recv_buffer,
-                  unsigned int source, void *data_raw) {
-  MPI_Datatype *data_type = data_raw;
-  MPI_Sendrecv(send, 1, *data_type, destination, 0, recv_buffer, 1, *data_type,
-               source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-}
 
 
 
@@ -110,7 +106,7 @@ void raw_sendrecv_ch(Message *send, unsigned int destination, Message *recv_buff
 // take timing not including IO
 float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int threads, unsigned int rank_id, unsigned int srand) {
   if(MESSAGE_SIZE<p.dim){
-    fprintf(stderr, "impossible to compute with %d dimensions, recompile with a bigger MESSAGE_SIZE", p.dim);
+    fprintf(stderr, "impossible to compute with %d dimensions, recompile with a bigger MESSAGE_SIZE\n", p.dim);
     exit(-1);
   }
   #ifndef USE_MPI
@@ -123,9 +119,8 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
   unsigned int start_chunk = rank_id*(p.chunks/threads) + min(rank_id, p.chunks%threads);
   unsigned int current_chunks = p.chunks/threads + (rank_id<(p.chunks%threads));
   unsigned int end_chunk = start_chunk + current_chunks;
-
-  if(end_chunk-start_chunk>MAX_CHUNKS){
-    fprintf(stderr, "impossible to compute with %d chunks, recompile with a bigger MAX_CHUNKS", p.chunks);
+  if(p.chunks>MAX_CHUNKS){
+    fprintf(stderr, "impossible to compute with %d chunks, recompile with a bigger MAX_CHUNKS\n", p.chunks);
     exit(-1);
   }
 
@@ -163,7 +158,6 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
 
   // for each iteration
   for (unsigned int i = 0; i < p.iterations; i++) {
-    ComputationStatus *s = &message.status[start_chunk];
     if (i != 0 && i % update_chunk_steps == 0) {
       joint_chunks *= 2;
     }
@@ -183,11 +177,10 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
     //prepare and compute
     for(unsigned int j=start_chunk-start_chunk%joint_chunks; j<end_chunk; j+=joint_chunks){
       for(unsigned int k=1; k<joint_chunks; k++){
-        if(j+k<end_chunk){
+        if(j+k<p.chunks){
           computation_status_merge(&message.status[j], &message.status[j+k], p.dim);
         }
       }
-
       scalar_prod_assign(message.status[j].cumulated_speeds,
                          1.0 / (float)message.status[j].n, p.dim);
       for(unsigned int k=0; k<joint_chunks; k++){
@@ -220,7 +213,6 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
   for(unsigned int i=0; i<p.chunks; i++){
     computation_status_merge(&message.status[0], &message.status[i], p.dim);
   }
-  printf("%f %f %f\n", best_fitness, fitness(best, p.dim), message.status[start_chunk].next_food_fitness);
 
   memcpy(best, message.status[start_chunk].next_food, p.dim*sizeof(float));
 

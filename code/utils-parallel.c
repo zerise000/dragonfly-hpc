@@ -35,7 +35,7 @@ unsigned int dimensions = d->dim;
       scalar_prod_assign(cur_speed, d->w.w, dimensions);
 
 	  for(unsigned int i = 0; i<dimensions; i++){
-		  S = ((-(float)N)*cur_pos[i])+(cumulated_pos[i]);
+		  S = (-cur_pos[i])+(cumulated_pos[i]/((float)N));
 		  A = average_speed[i];
 		  C = cumulated_pos[i]*(1.0/(float)N);
 		  F = food[i]-cur_pos[i];

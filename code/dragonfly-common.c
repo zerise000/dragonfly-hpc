@@ -131,7 +131,6 @@ void message_broadcast(Message *message, unsigned int index, int n, MPI_Datatype
       index_other = index-(1<<steps);
     }
     raw_send_recv(message, index_other, &recv_buffer, index_other, data_type);
-    //TODO check
     memcpy(&message->status[recv_buffer.start_chunk], &recv_buffer.status[recv_buffer.start_chunk], sizeof(ComputationStatus)*(recv_buffer.end_chunk-recv_buffer.start_chunk));
     message->start_chunk = min(message->start_chunk, recv_buffer.start_chunk);
     message->end_chunk = max(message->end_chunk, recv_buffer.end_chunk);

@@ -48,7 +48,6 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     sum_assign(cur_speed, d->S, dim);
     sum_assign(cur_speed, d->levy, dim);
     
-    
     // update current pos
     sum_assign(cur_pos, cur_speed, dim);
   }
@@ -57,33 +56,33 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
   weights_step(&d->w);
 }
 
-void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* best, float* best_fitness){
+void computation_accumulate(ComputationStatus *status, Dragonfly *d, float* best, float* best_fitness){
   unsigned int dim=d->dim;
-  zeroed(message->cumulated_pos, dim);
-  zeroed(message->cumulated_speeds, dim);
-  memcpy(message->next_enemy, d->positions, sizeof(float) * dim);
-  memcpy(message->next_food, d->positions, sizeof(float) * dim);
-  message->next_enemy_fitness =
-      d->fitness(message->next_enemy, dim);
-  message->next_food_fitness = d->fitness(message->next_food, dim);
-  message->n = 0;
+  zeroed(status->cumulated_pos, dim);
+  zeroed(status->cumulated_speeds, dim);
+  memcpy(status->next_enemy, d->positions, sizeof(float) * dim);
+  memcpy(status->next_food, d->positions, sizeof(float) * dim);
+  status->next_enemy_fitness =
+      d->fitness(status->next_enemy, dim);
+  status->next_food_fitness =status->next_enemy_fitness;
+  status->n = 0;
   for (unsigned int k = 0; k < d->N; k++) {
     float *cur_pos = d->positions + dim * k;
-    sum_assign(message->cumulated_pos, cur_pos, dim);
-    sum_assign(message->cumulated_speeds, d->speeds + dim * k, dim);
+    sum_assign(status->cumulated_pos, cur_pos, dim);
+    sum_assign(status->cumulated_speeds, d->speeds + dim * k, dim);
     float fitness = d->fitness(cur_pos, dim);
-    if (fitness > message->next_food_fitness) {
-      memcpy(message->next_food, cur_pos, sizeof(float) * dim);
-      message->next_food_fitness = fitness;
+    if (fitness > status->next_food_fitness) {
+      memcpy(status->next_food, cur_pos, sizeof(float) * dim);
+      status->next_food_fitness = fitness;
     }
-    if (fitness < message->next_enemy_fitness) {
-      memcpy(message->next_enemy, cur_pos, sizeof(float) * dim);
-      message->next_enemy_fitness = fitness;
+    if (fitness < status->next_enemy_fitness) {
+      memcpy(status->next_enemy, cur_pos, sizeof(float) * dim);
+      status->next_enemy_fitness = fitness;
     }
     if (fitness > *best_fitness) {
       memcpy(best, cur_pos, sizeof(float) * dim);
       *best_fitness = fitness;
     }
-    message->n += 1;
+    status->n += 1;
   }
 }

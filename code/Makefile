@@ -20,7 +20,7 @@ openmpi.bin: bin_openmpi.c utils.c utils-parallel.c
 	$(CC) $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
 
 mpich.bin: bin_mpich.c utils.c dragonfly-common.c utils-serial.c
-	mpicc $(CFLAGS) -o $@ $^ $(DLL) -fopenmp
+	mpicc $(CFLAGS) -o $@ $^ $(DLL)
 
 .PHONY clean: 
 	@rm -f $(BINARIES)
