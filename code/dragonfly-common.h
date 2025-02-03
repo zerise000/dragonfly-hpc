@@ -1,6 +1,9 @@
 #ifndef DA_COMMON
 #define DA_COMMON
+#include <mpi.h>
 #define MESSAGE_SIZE 50
+#define MAX_CHUNKS 1024
+
 typedef struct {
   float sl[2], al[2], cl[2], fl[2], el[2], wl[2], ll[2];
   float st, at, ct, ft, et, wt, lt;
@@ -21,7 +24,7 @@ typedef struct {
   
   // for how many dragonflies? problem definition
   // N is the chunk_size, not the problem size
-  unsigned int N, chunks, chunks_id;
+  unsigned int N;
 
   // buffers TODO (keep them?)
   float *positions, *speeds;
@@ -32,7 +35,7 @@ typedef struct {
   unsigned int seed;
 } Dragonfly;
 
-Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
+Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
                         unsigned int iterations, float space_size,
                         Weights weights,
                         float (*fitness)(float *, unsigned int), unsigned int random_seed);
@@ -51,18 +54,22 @@ typedef struct {
   float next_food_fitness;
 
   unsigned int n;
+} ComputationStatus;
+
+
+typedef struct{
+  unsigned int start_chunk, end_chunk;
+  ComputationStatus status[MAX_CHUNKS];
 } Message;
+
 
 typedef struct {
   unsigned int n, chunks, iterations, dim;
-
 } Parameters;
 
 Parameters parameter_parse(int argc, char *argv[]);
 
-void message_broadcast(Message *my_value, unsigned int i, unsigned int incr,
-                       void *data, int dim,
-                       void (*raw_sendrecv)(Message *, unsigned int, Message *,
-                                            unsigned int, void *));
+void message_broadcast(Message *message, unsigned int index, int n, MPI_Datatype *data_type);
+void computation_status_merge(ComputationStatus *out, ComputationStatus *in, unsigned int dim);
 
 #endif

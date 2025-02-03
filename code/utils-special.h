@@ -8,6 +8,6 @@
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float *food, float *enemy,
                             unsigned int N);
-void message_acumulate(Message *message, Dragonfly *d, float* best, float* best_fitness);
+void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* best, float* best_fitness);
 
 #endif

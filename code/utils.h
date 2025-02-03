@@ -3,6 +3,8 @@
 #define M_PI 3.14159265358979323846
 #include <stdlib.h> 
 #define RAND_FLOAT(N, seed) (((float)rand_r(seed) / (float)RAND_MAX) * N * 2 - N)
+#define min(a, b) ((a) < (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 
 float *init_array(unsigned int dimensions, float range_max, unsigned int *seed);
 void sum_assign(float *dest, float *source, unsigned int size);

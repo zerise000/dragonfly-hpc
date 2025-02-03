@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "utils.h"
+#include <mpi.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -20,8 +21,8 @@ Parameters parameter_parse(int argc, char* argv[]){
     fprintf(stderr, "invalid parameter they must be all bigger than 1 (and integers)");
     exit(-1);
   }
-  if((p.chunks&(p.chunks-1))!=0){
-    fprintf(stderr, "chunk must be a power of two");
+  if(p.chunks> p.n){
+    fprintf(stderr, "chunk must be smaller than n");
     exit(-1);
   }
   return p;
@@ -58,23 +59,16 @@ void weights_step(Weights *w) {
   w->l += w->lt;
 }
 
-Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N, unsigned int chunks, unsigned int chunk_id,
+Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
                         unsigned int iterations, float space_size,
                         Weights weights,
                         float (*fitness)(float *, unsigned int), unsigned int random_seed) {
   // computes weigths progression
-  unsigned int chunk_size=N/chunks;
-  if (chunk_id==chunks-1){
-    // if it is the last chunk, extend it to include additional elements as needed
-    chunk_size=N-chunk_size*(chunks-1);
-  }
+
   weights_compute_steps(&weights, iterations);
 
   Dragonfly d = {
-      .chunks = chunks,
-      .chunks_id = chunk_id,
-      .N = chunk_size,
-
+      .N = N,
       .dim = dimensions,
       
       .space_size = space_size,
@@ -107,7 +101,6 @@ void dragonfly_alloc(Dragonfly *d) {
 void dragonfly_free(Dragonfly d) {
   free(d.positions);
   free(d.speeds);
-
   free(d.S);
   free(d.A);
   free(d.C);
@@ -120,37 +113,41 @@ void dragonfly_free(Dragonfly d) {
 
 
 
-
-void message_broadcast(Message *my_value, unsigned int i, unsigned int incr,
-                       void *data, int dim,
-                       void (*raw_sendrecv)(Message *, unsigned int, Message *,
-                                            unsigned int, void *)) {
-  
-  Message recv_buffer;
-  int index_other;
-  int steps=0;
-  int tmp_incr=incr;
-  while(tmp_incr>1){
-    tmp_incr/=2;
-    steps++;
-  }
-  if ((i>>steps) % 2 == 0) {
-    index_other = i + incr;
-  } else {
-    index_other = i - incr;
-  }
-  raw_sendrecv(my_value, index_other, &recv_buffer, index_other, data);
-
-  sum_assign(my_value->cumulated_pos, recv_buffer.cumulated_pos, dim);
-  sum_assign(my_value->cumulated_speeds, recv_buffer.cumulated_speeds, dim);
-  if(my_value->next_food_fitness<recv_buffer.next_food_fitness){
-    memcpy(my_value->next_food, recv_buffer.next_food, sizeof(float)*dim);
-    my_value->next_food_fitness=recv_buffer.next_food_fitness;
-  }
-  if(my_value->next_enemy_fitness>recv_buffer.next_enemy_fitness){
-    memcpy(my_value->next_enemy, recv_buffer.next_enemy, sizeof(float)*dim);
-    my_value->next_enemy_fitness=recv_buffer.next_enemy_fitness;
-  }
-  my_value->n += recv_buffer.n;
+void raw_send_recv(Message *send, unsigned int destination, Message *recv_buffer,
+                  unsigned int source, MPI_Datatype *data_type) {
+  MPI_Sendrecv(send, 1, *data_type, destination, 0, recv_buffer, 1, *data_type,
+               source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
+
+void message_broadcast(Message *message, unsigned int index, int n, MPI_Datatype *data_type){
+  
+  Message recv_buffer;
+  for(unsigned int steps=0; (1<<steps)<n; steps++){
+    unsigned int index_other;
+    if ((index>>steps) % 2 == 0) {
+      index_other = index+(1<<steps);
+    } else {
+      index_other = index-(1<<steps);
+    }
+    raw_send_recv(message, index_other, &recv_buffer, index_other, data_type);
+    //TODO check
+    memcpy(&message->status[recv_buffer.start_chunk], &recv_buffer.status[recv_buffer.start_chunk], sizeof(ComputationStatus)*(recv_buffer.end_chunk-recv_buffer.start_chunk));
+    message->start_chunk = min(message->start_chunk, recv_buffer.start_chunk);
+    message->end_chunk = max(message->end_chunk, recv_buffer.end_chunk);
+  }
+}
+
+void computation_status_merge(ComputationStatus *out, ComputationStatus *in, unsigned int dim){
+  sum_assign(out->cumulated_pos, in->cumulated_pos, dim);
+  sum_assign(out->cumulated_speeds, in->cumulated_speeds, dim);
+  if(out->next_food_fitness<in->next_food_fitness){
+    memcpy(out->next_food, in->next_food, sizeof(float)*dim);
+    out->next_food_fitness=in->next_food_fitness;
+  }
+  if(out->next_enemy_fitness>in->next_enemy_fitness){
+    memcpy(out->next_enemy, in->next_enemy, sizeof(float)*dim);
+    out->next_enemy_fitness=in->next_enemy_fitness;
+  }
+  out->n += in->n;
+}

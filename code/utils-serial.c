@@ -1,4 +1,6 @@
+#include "dragonfly-common.h"
 #include"utils-special.h"
+#include <stdio.h>
 
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float * food, float * enemy, unsigned int N) {
@@ -9,9 +11,9 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     float *cur_speed = d->speeds + dim * j;
 
     // compute separation: Si = -sumall(X-Xi)
-    memcpy(d->S, cur_pos, sizeof(float) * dim);
-    scalar_prod_assign(d->S, -(float)N, dim);
-    sum_assign(d->S, cumulated_pos, dim);
+    memcpy(d->S, cumulated_pos, sizeof(float) * dim);
+    scalar_prod_assign(d->S, 1.0/(float)N, dim);
+    sub_assign(d->S, cur_pos, dim);
     scalar_prod_assign(d->S, d->w.s, dim);
 
     // compute alignament: Ai = avarage(Vi)
@@ -55,7 +57,7 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
   weights_step(&d->w);
 }
 
-void message_acumulate(Message *message, Dragonfly *d, float* best, float* best_fitness){
+void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* best, float* best_fitness){
   unsigned int dim=d->dim;
   zeroed(message->cumulated_pos, dim);
   zeroed(message->cumulated_speeds, dim);

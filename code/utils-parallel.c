@@ -1,7 +1,6 @@
+#include "dragonfly-common.h"
 #include "utils-special.h"
 #include <omp.h>
-#include <stdio.h>
-#include <math.h>
 
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float *food, float *enemy,
@@ -83,7 +82,7 @@ unsigned int dimensions = d->dim;
 
 }
 
-void message_acumulate(Message *message, Dragonfly *d, float* best, float* best_fitness){
+void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* best, float* best_fitness){
   unsigned int dim=d->dim;
   unsigned int nr_threads = 2;
   unsigned int rest = d->N % nr_threads;
