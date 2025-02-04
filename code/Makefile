@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g -Wextra -o -std=c11  -D_POSIX_C_SOURCE=200112L -O3
+CFLAGS=-Wall -Wextra -o -std=c11  -D_POSIX_C_SOURCE=200112L -O3
 #-O3
 DLL=-lm 
 

@@ -1,6 +1,5 @@
 #ifndef DA_COMMON
 #define DA_COMMON
-#include <mpi.h>
 #define MESSAGE_SIZE 50
 #define MAX_CHUNKS 1024
 
@@ -69,7 +68,9 @@ typedef struct {
 
 Parameters parameter_parse(int argc, char *argv[]);
 
-void message_broadcast(Message *message, unsigned int index, int n, MPI_Datatype *data_type);
+
+
+//void message_broadcast(Message *message, unsigned int index, int n, MPI_Datatype *data_type);
 void computation_status_merge(ComputationStatus *out, ComputationStatus *in, unsigned int dim);
 float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int threads, unsigned int rank_id, float space_size, unsigned int srand);
 #endif
