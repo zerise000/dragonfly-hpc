@@ -3,7 +3,7 @@ CFLAGS=-Wall -Wextra -std=c11  -D_POSIX_C_SOURCE=200112L -O3
 #-O3
 DLL=-lm 
 
-BINARIES=serial.bin training_mpich.bin mpich.bin
+BINARIES=serial.bin training_mpich.bin mpich.bin training_parameters.bin
 
 all: $(BINARIES)
 
