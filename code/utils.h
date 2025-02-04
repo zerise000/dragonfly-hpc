@@ -1,6 +1,7 @@
 #ifndef DA_UTILS
 #define DA_UTILS
 #include "dragonfly-common.h"
+#include <stdio.h>
 #define M_PI 3.14159265358979323846
 #include <stdlib.h> 
 #define RAND_FLOAT(N, seed) (((float)rand_r(seed) / (float)RAND_MAX) * N * 2 - N)

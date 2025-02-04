@@ -273,7 +273,6 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
     #ifdef USE_MPI
       message_broadcast(&message, rank_id, threads, &message_type);
     #endif
-
     //prepare and compute
     for(unsigned int j=start_chunk-start_chunk%joint_chunks; j<end_chunk; j+=joint_chunks){
       for(unsigned int k=1; k<joint_chunks; k++){
@@ -315,10 +314,14 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
   }
 
   memcpy(best, message.status[start_chunk].next_food, p.dim*sizeof(float));
-
+  for(unsigned int i=0; i<current_chunks; i++){
+    dragonfly_free(d[i]);
+  }
+  free(d);
   //memcpy(best, message.status[0].next_food, p.dim*sizeof(float));
   #ifdef USE_MPI
   MPI_Type_free(&message_type);
+  MPI_Type_free(&computation_status_type);
   #endif
   return best;
 }

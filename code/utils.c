@@ -1,9 +1,27 @@
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include "utils.h"
+
 #include "dragonfly-common.h"
 #include <string.h>
+/*
+void my_free(void* mem, const char *file, int line, const char *func)
+{
 
+    free(mem);
+    printf ("Freed = %s, %i, %s,\n", file, line, func);
+
+
+}
+void* my_malloc(size_t size, const char *file, int line, const char *func)
+{
+
+    void *p = malloc(size);
+    printf ("Allocated = %s, %i, %s, %p[%li]\n", file, line, func, p, size);
+
+    return p;
+}*/
+#include "utils.h"
 
 float *init_array(unsigned int dimensions, float range_max, unsigned int *seed) {
   float *arr = malloc(dimensions * sizeof(float));

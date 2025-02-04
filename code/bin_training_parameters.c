@@ -74,6 +74,7 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
     std+=(array[i]-avg)*(array[i]-avg);
   }
   std=sqrt(std/N);
+  free(array);
   printf("avg: %f\n std %f", avg, std);
   return avg;
 }

@@ -1,6 +1,6 @@
 #ifndef DA_COMMON
 #define DA_COMMON
-#define MESSAGE_SIZE 50
+#define MESSAGE_SIZE 16
 #define MAX_CHUNKS 1024
 
 typedef struct {
