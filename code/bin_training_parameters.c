@@ -5,10 +5,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include<math.h>
-#define DA_SERIAL_LIB
-#include "bin_serial.c"
+#include <time.h>
 
-float eval(float *wi) {
+
+
+float eval(float *wi, unsigned int *seed, unsigned int d) {
+  for (int i = 0; i < 14; i++) {
+    if (wi[i] < 0.0) {
+      wi[i] = 0.0;
+    }
+    if (i % 2 == 0 && wi[i] == wi[i + 1]) {
+      wi[i + 1] += 0.0001;
+    }
+  }
+  (void)d;
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},
@@ -20,25 +30,23 @@ float eval(float *wi) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  Parameters p = {.n = 100, .dim = 10, .chunks = 32, .iterations = 1000};
+  Parameters p = {.n = 128, .dim = 10, .chunks = 64, .iterations = 200};
 
   Fitness fitness = shifted_fitness;
-  int N = 100;
+  int N = 30;
   float *array = malloc(sizeof(float)*N);
   for (int i = 0; i < N; i++) {
-    unsigned int seed = rand();
 
     float *shifted_tmp = malloc(sizeof(float) * p.dim);
     float *shifted_rotation = malloc(sizeof(float) * p.dim * p.dim);
-    float *shifted_shift = init_array(p.dim, 80.0, &seed);
-    init_matrix(shifted_rotation, 100.0, p.dim, &seed);
+    float *shifted_shift = init_array(p.dim, 7.0, seed);
+    init_matrix(shifted_rotation, 10.0, p.dim, seed);
 
     init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift,
                          rastrigin_fitness);
 
-    float *res = dragonfly_serial_compute(p, w, fitness, seed);
-     printf("%f\n", fitness(res, p.dim));
-    array[i] = fitness(res, p.dim);
+    float *res = dragonfly_compute(p, w, fitness, 1, 0, 100.0, *seed);
+    array[i] = fitness(res, seed, p.dim);
     free(shifted_tmp);
     free(shifted_rotation);
     free(shifted_shift);
@@ -50,12 +58,11 @@ float eval(float *wi) {
   }
   avg/=N;
   for(int i=0; i<N; i++){
-    std+=(float)sqrt((double)(array[i]-avg)*(array[i]-avg));
+    std+=(array[i]-avg)*(array[i]-avg);
   }
-  std/=N;
-  free(array);
+  std=sqrt(std/N);
   printf("avg: %f\n std %f", avg, std);
-  return avg / N;
+  return avg;
 }
 
 int main() {
@@ -75,13 +82,25 @@ int main() {
   */
   srand(time(NULL));
   float best[14] = {
-      0.941010, 0.000000, 0.000000, 1.347089, 0.063430, 0.000000,
-                  3.548271, 2.154025, 0.000000, 0.000100, 2.139098, 3.452764,
-                  0.707045, 3.671526
+      0.000000,
+0.000100,
+0.000000,
+0.000100,
+0.000000,
+0.000100,
+0.000000,
+1.251300,
+0.000000,
+0.000100,
+0.000000,
+0.000100,
+0.000000,
+0.000100
 
   };
-  float best_fitness = eval(best);
-  printf("starting: %f\n", best_fitness);
+  unsigned int seed =rand();
+  eval(best, &seed, 10);
+  //printf("starting: %f\n", best_fitness);
   /*float cur[16];
   unsigned int seed = rand();
   while (true) {

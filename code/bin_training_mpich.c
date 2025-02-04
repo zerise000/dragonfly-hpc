@@ -5,21 +5,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-#define DA_SERIAL_LIB
-#define DA_MPICH_LIB
-#include "bin_serial.c"
-#include "bin_mpich.c"
 
-float eval(float *wi, unsigned int d) {
-    for(int i=0; i<14; i++){
-        if(wi[i]<0.0){
-            wi[i]=0.0;
-        }
-        if(i%2==0&&wi[i]==wi[i+1]){
-            wi[i+1]+=0.0001;
-        }
+float eval(float *wi, unsigned int *seed, unsigned int d) {
+  for (int i = 0; i < 14; i++) {
+    if (wi[i] < 0.0) {
+      wi[i] = 0.0;
     }
+    if (i % 2 == 0 && wi[i] == wi[i + 1]) {
+      wi[i + 1] += 0.0001;
+    }
+  }
   (void)d;
   Weights w = {
       // exploring
@@ -32,32 +29,29 @@ float eval(float *wi, unsigned int d) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  Parameters p = {.n = 100, .dim = 10, .chunks = 8, .iterations = 1000};
+  Parameters p = {.n = 128, .dim = 10, .chunks = 64, .iterations = 200};
 
   Fitness fitness = shifted_fitness;
   float avg = 0.0;
-  int N = 50;
+  int N = 30;
   for (int i = 0; i < N; i++) {
-    //printf("run %d\n", i);
-    unsigned int seed = rand();
 
     float *shifted_tmp = malloc(sizeof(float) * p.dim);
     float *shifted_rotation = malloc(sizeof(float) * p.dim * p.dim);
-    float *shifted_shift = init_array(p.dim, 100.0, &seed);
-    init_matrix(shifted_rotation, 100.0, p.dim, &seed);
+    float *shifted_shift = init_array(p.dim, 7.0, seed);
+    init_matrix(shifted_rotation, 10.0, p.dim, seed);
 
     init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift,
                          rastrigin_fitness);
 
-    float *res = dragonfly_serial_compute(p, w, fitness, seed);
-    // printf("%f\n", fitness(res, p.dim));
-    avg += fitness(res, p.dim);
+    float *res = dragonfly_compute(p, w, fitness, 1, 0, 100.0, *seed);
+    avg += fitness(res, seed, p.dim);
     free(shifted_tmp);
     free(shifted_rotation);
     free(shifted_shift);
     free(res);
   }
-  // printf("avg: %f\n", avg);
+
   return avg / N;
 }
 
@@ -66,7 +60,7 @@ int main(int argc, char **argv) {
   // wait for all the process to start
   MPI_Barrier(MPI_COMM_WORLD);
   clock_t start_time;
-  start_time=clock();
+  start_time = clock();
   int comm_size, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -74,48 +68,24 @@ int main(int argc, char **argv) {
   srand(time(NULL) + rank);
   Fitness fitness = eval;
   Parameters p = parameter_parse(argc, argv);
-  //{.n = 512, .dim = 16, .chunks = 512, .iterations = 160};
-  /*float best[16] = {
-      0.0,      0.05, 0.12, 0.33, 0.000000, 0.04, 0.85, 0.95,
-      0.000000, 0.0,  0.86, 0.41, 0.05,     0.19, 2.4,  1.4,
-  };
-  float best_fitness = fitness(best, 0);*/
 
-  if ((int)p.chunks != comm_size) {
-    fprintf(stderr, "chunks!=comm_size (%d!=%d)", p.chunks, comm_size);
-  }
-
-    float wi[16] = {
-    0.000000,
-4.967649,
-0.000000,
+  float wi[14] = {
+      0.000000,
 0.000100,
-0.285827,
-0.000000,
-2.293534,
-2.777018,
 0.000000,
 0.000100,
 0.000000,
 0.000100,
 0.000000,
-1.027528,
+1.251300,
+0.000000,
+0.000100,
+0.000000,
+0.000100,
+0.000000,
+0.000100
 
   };
-  /*
-  Weights w = {
-      // exploring
-      .al = {0.3, 0.00}, 0.000000, 4.967649,
-      .cl = {0.00, 0.3}, 0.000000, 0.000100,
-      // swarming
-      .sl = {0.4, 0.0}, 0.285827, 0.000000,
-      .fl = {0.7, 0.7}, 2.293534, 2.777018,
-      .el = {0.0, 0.0}, 0.000000, 0.000100,
-      .wl = {0.8, 0.8}, 0.000000, 0.000100,
-      .ll = {0.2, 0.3}, 0.000000, 1.027528,
-      .max_speedl = {0.1, 0.03}, 3.797735, 0.000000,
-  };
-  */
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},
@@ -127,20 +97,13 @@ int main(int argc, char **argv) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  Dragonfly d = dragonfly_new(p.dim, p.n, p.chunks, rank, p.iterations, 5.0, w,
-                              fitness, rank);
-  dragonfly_alloc(&d);
-
-  float *res = dragonfly_compute(&d, p.chunks, p.dim, p.iterations);
-  dragonfly_free(d);
+  float *res = dragonfly_compute(p, w, fitness, comm_size, rank, 2.0, 0);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  
-
   if (rank == 0) {
-    //printf("end, evaluating");
-    float fit = fitness(res, p.dim);
+    unsigned int seed = 0;
+    float fit = fitness(res, &seed, p.dim);
     printf("found fitness=%f\n", fit);
     for (unsigned int i = 0; i < p.dim; i++) {
       printf("%f\n", res[i]);

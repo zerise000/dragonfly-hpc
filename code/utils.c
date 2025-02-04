@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "utils.h"
+#include "dragonfly-common.h"
 #include <string.h>
 
 
@@ -99,7 +100,8 @@ void brownian_motion(float* inp, unsigned int dim, unsigned int * seed){
 
 }
 
-float rastrigin_fitness(float *inp, unsigned int dim) {
+float rastrigin_fitness(float *inp, unsigned int *seed, unsigned int dim) {
+  (void)(seed);
   float ret = 10.0 * dim;
   for (unsigned int i = 0; i < dim; i++) {
     ret += inp[i] * inp[i] - 10.0 * cos(2 * M_PI * inp[i]);
@@ -107,14 +109,16 @@ float rastrigin_fitness(float *inp, unsigned int dim) {
   return -ret;
 }
 
-float sphere_fitness(float *inp, unsigned int dim) {
+float sphere_fitness(float *inp, unsigned int *seed, unsigned int dim) {
+  (void)(seed);
   float res = 0.0;
   for (unsigned int i = 0; i < dim; i++) {
     res += inp[i] * inp[i];
   }
   return -res;
 }
-float rosenblock_fitness(float *inp, unsigned int dim) {
+float rosenblock_fitness(float *inp, unsigned int *seed, unsigned int dim) {
+  (void)(seed);
   float res = 0.0;
   for (unsigned int i = 0; i < dim - 1; i++) {
     res +=
@@ -126,9 +130,9 @@ float rosenblock_fitness(float *inp, unsigned int dim) {
 
 float *ROTATION;
 float *SHIFT;
-float (*FITNESS)(float*, unsigned int);
+Fitness FITNESS;
 float *TMP;
-void init_shifted_fitness(float *tmp, float * rotation, float * shift, float (*fitness)(float*, unsigned int)){
+void init_shifted_fitness(float *tmp, float * rotation, float * shift, Fitness fitness){
   ROTATION = rotation;
   SHIFT = shift;
   FITNESS = fitness;
@@ -136,8 +140,8 @@ void init_shifted_fitness(float *tmp, float * rotation, float * shift, float (*f
 }
 
 
-float shifted_fitness(float *inp, unsigned int dim){
+float shifted_fitness(float *inp, unsigned int *seed, unsigned int dim){
   matrix_times_vector(TMP, ROTATION, inp, dim);
   sum_assign(TMP, SHIFT, dim);
-  return FITNESS(TMP, dim);
+  return FITNESS(TMP, seed, dim);
 }

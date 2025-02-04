@@ -10,7 +10,7 @@ typedef struct {
   float s, a, c, f, e, w, l;
 } Weights;
 
-typedef float (*Fitness)(float *, unsigned int);
+typedef float (*Fitness)(float *, unsigned int*, unsigned int);
 
 void weights_compute_steps(Weights *w, unsigned int steps);
 void weights_step(Weights *w);
@@ -38,7 +38,7 @@ typedef struct {
 Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
                         unsigned int iterations, float space_size,
                         Weights weights,
-                        float (*fitness)(float *, unsigned int), unsigned int random_seed);
+                        Fitness fitness, unsigned int random_seed);
 void dragonfly_alloc(Dragonfly *d);
 void dragonfly_free(Dragonfly d);
 
@@ -71,5 +71,5 @@ Parameters parameter_parse(int argc, char *argv[]);
 
 void message_broadcast(Message *message, unsigned int index, int n, MPI_Datatype *data_type);
 void computation_status_merge(ComputationStatus *out, ComputationStatus *in, unsigned int dim);
-
+float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int threads, unsigned int rank_id, float space_size, unsigned int srand);
 #endif

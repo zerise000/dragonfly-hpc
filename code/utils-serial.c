@@ -1,6 +1,5 @@
 #include "dragonfly-common.h"
 #include"utils-special.h"
-#include <stdio.h>
 
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float * food, float * enemy, unsigned int N) {
@@ -63,14 +62,14 @@ void computation_accumulate(ComputationStatus *status, Dragonfly *d, float* best
   memcpy(status->next_enemy, d->positions, sizeof(float) * dim);
   memcpy(status->next_food, d->positions, sizeof(float) * dim);
   status->next_enemy_fitness =
-      d->fitness(status->next_enemy, dim);
+      d->fitness(status->next_enemy, &d->seed, dim);
   status->next_food_fitness =status->next_enemy_fitness;
   status->n = 0;
   for (unsigned int k = 0; k < d->N; k++) {
     float *cur_pos = d->positions + dim * k;
     sum_assign(status->cumulated_pos, cur_pos, dim);
     sum_assign(status->cumulated_speeds, d->speeds + dim * k, dim);
-    float fitness = d->fitness(cur_pos, dim);
+    float fitness = d->fitness(cur_pos, &d->seed, dim);
     if (fitness > status->next_food_fitness) {
       memcpy(status->next_food, cur_pos, sizeof(float) * dim);
       status->next_food_fitness = fitness;

@@ -36,7 +36,7 @@ unsigned int dimensions = d->dim;
 
 	  for(unsigned int i = 0; i<dimensions; i++){
 		  S = (-cur_pos[i])+(cumulated_pos[i]/((float)N));
-		  A = average_speed[i];
+		  A = average_speed[i]/(float)N;
 		  C = cumulated_pos[i]*(1.0/(float)N);
 		  F = food[i]-cur_pos[i];
 		  E = enemy[i]+cur_pos[i];
@@ -62,8 +62,8 @@ unsigned int dimensions = d->dim;
 		  scalar_prod_assign(cur_speed, d->w.w, dimensions);
 
 		  for(unsigned int i = 0; i<dimensions; i++){
-			  float S = ((-(float)N)*cur_pos[i])+(cumulated_pos[i]);
-			  float A = average_speed[i];
+			  float S = (-cur_pos[i])+(cumulated_pos[i]/((float)N));
+			  float A = average_speed[i]/(float)N;
 			  float C = cumulated_pos[i]*(1.0/(float)N);
 			  float F = food[i]-cur_pos[i];
 			  float E = enemy[i]+cur_pos[i];
