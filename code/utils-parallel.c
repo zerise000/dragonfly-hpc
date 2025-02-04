@@ -94,8 +94,8 @@ void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* bes
   memcpy(message->next_enemy, d->positions, sizeof(float) * dim);
   memcpy(message->next_food, d->positions, sizeof(float) * dim);
   message->next_enemy_fitness =
-      d->fitness(message->next_enemy, dim);
-  message->next_food_fitness = d->fitness(message->next_food, dim);
+      d->fitness(message->next_enemy, &d->seed, dim);
+  message->next_food_fitness = message->next_enemy_fitness;
   message->n = 0;
 
 
@@ -110,7 +110,7 @@ void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* bes
 		sum_assign(message->cumulated_pos, cur_pos, dim);
 		sum_assign(message->cumulated_speeds, d->speeds + dim * k, dim);
 
-		float fitness = d->fitness(cur_pos, dim);
+		float fitness = d->fitness(cur_pos, &d->seed, dim);
 		if (fitness > message->next_food_fitness) {
 		  memcpy(message->next_food, cur_pos, sizeof(float) * dim);
 		  message->next_food_fitness = fitness;
@@ -136,7 +136,7 @@ void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* bes
 			float *cur_pos = d->positions + dim * k;
 			sum_assign(message->cumulated_pos, cur_pos, dim);
 			sum_assign(message->cumulated_speeds, d->speeds + dim * k, dim);
-			float fitness = d->fitness(cur_pos, dim);
+			float fitness = d->fitness(cur_pos, &d->seed, dim);
 			if (fitness > message->next_food_fitness) {
 			  memcpy(message->next_food, cur_pos, sizeof(float) * dim);
 			  message->next_food_fitness = fitness;

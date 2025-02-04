@@ -17,8 +17,8 @@ training_parameters.bin: bin_training_parameters.c utils.c dragonfly-common.c ut
 	$(CC) $(CFLAGS) -o $@ $^ $(DLL)
 
 
-mpich.bin: bin_mpich.c utils.c dragonfly-common.c utils-serial.c 
-	mpicc $(CFLAGS) -DUSE_MPI -o $@ $^ $(DLL) 
+mpich.bin: bin_mpich.c utils.c dragonfly-common.c utils-parallel.c 
+	mpicc $(CFLAGS) -DUSE_MPI -o $@ $^ $(DLL) -fopenmp
 
 .PHONY clean: 
 	@rm -f $(BINARIES)
