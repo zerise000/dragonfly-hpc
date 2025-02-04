@@ -13,9 +13,22 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
     if (wi[i] < 0.0) {
       wi[i] = 0.0;
     }
+    if(wi[i]>2.0){
+      wi[i]=2.0;
+    }
     if (i % 2 == 0 && wi[i] == wi[i + 1]) {
       wi[i + 1] += 0.0001;
     }
+  }
+  float m = max(wi[8], wi[9]);
+  if(m>0.1){
+    wi[8]/=10*m;
+    wi[9]/=10*m;
+  }
+  m = max(wi[10], wi[11]);
+  if(m>1.0){
+    wi[10]/=1.2*m;
+    wi[11]/=1.2*m;
   }
   (void)d;
   Weights w = {
@@ -29,7 +42,7 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  Parameters p = {.n = 128, .dim = 10, .chunks = 64, .iterations = 200};
+  Parameters p = {.n = 128, .dim = 10, .chunks = 64, .iterations = 80};
 
   Fitness fitness = shifted_fitness;
   float avg = 0.0;
@@ -38,14 +51,20 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
 
     float *shifted_tmp = malloc(sizeof(float) * p.dim);
     float *shifted_rotation = malloc(sizeof(float) * p.dim * p.dim);
-    float *shifted_shift = init_array(p.dim, 7.0, seed);
-    init_matrix(shifted_rotation, 10.0, p.dim, seed);
+    float *shifted_shift = init_array(p.dim, 80.0, seed);
+    init_matrix(shifted_rotation, 90.0, p.dim, seed);
 
     init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift,
                          rastrigin_fitness);
 
     float *res = dragonfly_compute(p, w, fitness, 1, 0, 100.0, *seed);
+    
     avg += fitness(res, seed, p.dim);
+    /*printf("%f ", fitness(res, seed, p.dim));
+    for(int i=0; i<14; i++){
+      printf("%2f ", wi[i]);
+    }
+    printf("\n");*/
     free(shifted_tmp);
     free(shifted_rotation);
     free(shifted_shift);

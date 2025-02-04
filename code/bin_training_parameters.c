@@ -14,9 +14,22 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
     if (wi[i] < 0.0) {
       wi[i] = 0.0;
     }
+    if(wi[i]>2.0){
+      wi[i]=2.0;
+    }
     if (i % 2 == 0 && wi[i] == wi[i + 1]) {
       wi[i + 1] += 0.0001;
     }
+  }
+  float m = max(wi[8], wi[9]);
+  if(m>0.1){
+    wi[8]/=10*m;
+    wi[9]/=10*m;
+  }
+  m = max(wi[10], wi[11]);
+  if(m>1.0){
+    wi[10]/=1.2*m;
+    wi[11]/=1.2*m;
   }
   (void)d;
   Weights w = {
