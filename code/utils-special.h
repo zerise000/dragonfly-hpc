@@ -10,4 +10,6 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             unsigned int N);
 void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* best, float* best_fitness);
 
+void set_thread_number(unsigned int N);
+
 #endif

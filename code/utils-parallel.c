@@ -1,10 +1,13 @@
 #include "dragonfly-common.h"
 #include "utils-special.h"
 #include <omp.h>
-#include <stdio.h>
 
-#define NR_THREADS 4
+//#define NR_THREADS 4
+unsigned int NR_THREADS =4;
 
+void set_thread_number(unsigned int N){
+	  NR_THREADS = N;
+}
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float *food, float *enemy,
                             unsigned int N){
