@@ -1,8 +1,7 @@
 \begin{thebibliography}{1}
 
 \bibitem{DASurvey}
-Chnoor M. Rahman Tarik A. Rashid Abeer Alsadoon Nebojsa Bacanin Polla
-  Fattah~Seyedali Mirjalil.
+Chnoor M. Rahman Tarik A. Rashid Abeer Alsadoon Nebojsa Bacanin Polla Fattah~Seyedali Mirjalil.
 \newblock A survey on dragonfly algorithm and its applications in engineering.
 \newblock {\em Evolutionary Intelligence}, 2021.
 
@@ -10,5 +9,13 @@ Chnoor M. Rahman Tarik A. Rashid Abeer Alsadoon Nebojsa Bacanin Polla
 Yassine Meraihi Amar Ramdane-Cherif Dalila Acheli~Mohammed Mahseur.
 \newblock Dragonfly algorithm: a comprehensive review and applications.
 \newblock {\em Neural Computing and Applications}, 2020.
+
+\bibitem{WikiGamma}
+\url{https://en.wikipedia.org/wiki/Gamma_function}.
+
+\bibitem{BDragonfly}
+Hakan~Gülcan Çiğdem~İnan Acı.
+\newblock H. a modified dragonfly optimization algorithm for single- and multiobjectiveproblems using brownian motion.
+\newblock {\em Computational Intelligence and Neuroscience}, 2019.
 
 \end{thebibliography}
