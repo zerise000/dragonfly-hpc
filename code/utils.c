@@ -191,7 +191,7 @@ void inner_dragonfly_step(Dragonfly *d, float *average_speed,
 
     // compute speed = sSi + aAi + cCi + fFi + eEi + w
 
-    for (unsigned int i = 0; i < dimensions; i++) {
+   for (unsigned int i = 0; i < dimensions; i++) {
       S = (cumulated_pos[i] / ((float)N)) - cur_pos[i];
       A = average_speed[i];
       C = (cumulated_pos[i] / (float)N) - cur_pos[i];
@@ -211,11 +211,12 @@ void inner_dragonfly_step(Dragonfly *d, float *average_speed,
     }
   }
 }
+
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float *food, float *enemy,
                             unsigned int N, unsigned int NR_THREADS) {
   unsigned int base_random = rand_r(&d->seed);
-
+  //printf("base_random=%d\n", base_random);
   // if more than 1 thread
   unsigned int rest = d->N % NR_THREADS;
   unsigned int ratio = d->N / NR_THREADS;
@@ -334,9 +335,9 @@ fflush(stdout);
   }
   printf("END Function\n");
   fflush(stdout);
-}*/
+}
 
-void dragonfly_compute_step_serial(Dragonfly *d, float *average_speed,
+void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                                    float *cumulated_pos, float *food,
                                    float *enemy, unsigned int N,
                                    unsigned int NUM_THREADS) {
@@ -391,7 +392,7 @@ void dragonfly_compute_step_serial(Dragonfly *d, float *average_speed,
 
   // update weights
   weights_step(&d->w);
-}
+}*/
 
 void computation_accumulate(ComputationStatus *status, Dragonfly *d,
                             float *best, float *best_fitness,

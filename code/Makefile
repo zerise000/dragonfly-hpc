@@ -11,7 +11,7 @@ serial.bin: bin_serial.c utils.c dragonfly-common.c
 	$(CC) $(CFLAGS) -o $@ $^ $(DLL) 
 
 training_mpich.bin: bin_training_mpich.c utils.c dragonfly-common.c
-	mpicc $(CFLAGS) -DUSE_MPI -DUSE_OPENMP -fopenmp -o $@ $^ $(DLL) 
+	mpicc $(CFLAGS) -DUSE_MPI -o $@ $^ $(DLL) -fopenmp
 #-fopenmp
 training_parameters.bin: bin_training_parameters.c utils.c dragonfly-common.c
 	$(CC) $(CFLAGS) -o $@ $^ $(DLL)

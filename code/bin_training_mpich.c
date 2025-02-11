@@ -9,7 +9,8 @@
 #include <time.h>
 
 
-float eval(float *wi, unsigned int *seed, unsigned int d) {
+float eval(float *wi, unsigned int *seedi, unsigned int d) {
+  unsigned int seed = *seedi;
   for (int i = 0; i < 14; i++) {
     if (wi[i] < 0.0) {
       wi[i] = 0.0;
@@ -52,15 +53,15 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
 
     float *shifted_tmp = malloc(sizeof(float) * p.dim);
     float *shifted_rotation = malloc(sizeof(float) * p.dim * p.dim);
-    float *shifted_shift = init_array(p.dim, 80.0, seed);
-    init_matrix(shifted_rotation, 90.0, p.dim, seed);
+    float *shifted_shift = init_array(p.dim, 80.0, &seed);
+    init_matrix(shifted_rotation, 90.0, p.dim, &seed);
 
     init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift,
                          rastrigin_fitness);
 
-    float *res = dragonfly_compute(p, w, fitness, 1, 0, 100.0, *seed);
+    float *res = dragonfly_compute(p, w, fitness, 1, 0, 100.0, seed);
     
-    avg += fitness(res, seed, p.dim);
+    avg += fitness(res, &seed, p.dim);
     /*printf("%f ", fitness(res, seed, p.dim));
     for(int i=0; i<14; i++){
       printf("%2f ", wi[i]);
@@ -88,7 +89,6 @@ int main(int argc, char **argv) {
   srand(time(NULL) + rank);
   Fitness fitness = eval;
   Parameters p = parameter_parse(argc, argv);
-  omp_set_num_threads(p.threads_per_process);
 
   float wi[14] = {
       0.000000,
