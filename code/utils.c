@@ -166,93 +166,98 @@ float shifted_fitness(float *inp, unsigned int *seed, unsigned int dim) {
 
 #ifdef USE_OPENMP
 #include <omp.h>
-void dragonfly_compute_step_multithread(Dragonfly *d, float *average_speed,
-                                        float *cumulated_pos, float *food,
-                                        float *enemy, unsigned int N,
-                                        unsigned int NR_THREADS) {
+
+#endif
+
+void inner_dragonfly_step(Dragonfly *d, float *average_speed,
+                          float *cumulated_pos, float *food, float *enemy,
+                          unsigned int N, unsigned int base, unsigned int limit,
+                          unsigned int random_seed) {
+  unsigned int dimensions = d->dim;
+  float S;
+  float A;
+  float C;
+  float F;
+  float E;
+  float levy;
+
+  float *cur_pos;
+  float *cur_speed;
+
+  for (unsigned int j = base; j < limit; j++) {
+    unsigned random = random_seed + j;
+    cur_pos = d->positions + j * dimensions;
+    cur_speed = d->speeds + j * dimensions;
+
+    // compute speed = sSi + aAi + cCi + fFi + eEi + w
+
+    for (unsigned int i = 0; i < dimensions; i++) {
+      S = (cumulated_pos[i] / ((float)N)) - cur_pos[i];
+      A = average_speed[i];
+      C = (cumulated_pos[i] / (float)N) - cur_pos[i];
+      F = food[i] - cur_pos[i];
+      E = enemy[i] + cur_pos[i];
+      levy = RAND_FLOAT(1.0, &random);
+
+      cur_speed[i] *= d->w.w;
+      cur_speed[i] += d->w.s * S;
+      cur_speed[i] += d->w.a * A;
+      cur_speed[i] += d->w.c * C;
+      cur_speed[i] += d->w.f * F;
+      cur_speed[i] += d->w.e * E;
+      cur_speed[i] += levy;
+
+      cur_pos[i] += cur_speed[i];
+    }
+  }
+}
+void dragonfly_compute_step(Dragonfly *d, float *average_speed,
+                            float *cumulated_pos, float *food, float *enemy,
+                            unsigned int N, unsigned int NR_THREADS) {
+  unsigned int base_random = rand_r(&d->seed);
+
+  // if more than 1 thread
   unsigned int rest = d->N % NR_THREADS;
   unsigned int ratio = d->N / NR_THREADS;
-  unsigned int dimensions = d->dim;
-  printf("serial rest=%d, ratio=%d, dim=%d\n", rest, ratio, dimensions);
-  fflush(stdout);
+  if (NR_THREADS == 1) {
+    inner_dragonfly_step(d, average_speed, cumulated_pos, food, enemy, N, 0,
+                         d->N, base_random);
+  } else {
+    
+#ifdef USE_OPENMP
+//printf("%d threads\n", NR_THREADS);
+// Compute in parallel if openmp
 #pragma omp parallel num_threads(NR_THREADS)
-  {
+    {
+      
+      unsigned int rank = omp_get_thread_num();
+      //printf("rank=%d\n", rank);
+      unsigned int base = ratio * rank;
+      unsigned int limit = ratio * (rank + 1);
+      inner_dragonfly_step(d, average_speed, cumulated_pos, food, enemy, N,
+                           base, limit, base_random);
+    }
+#else
+    // Compute it in serial
+    for (unsigned int rank = 0; rank < NR_THREADS; rank++) {
+      unsigned int base = ratio * rank;
+      unsigned int limit = ratio * (rank + 1);
+      inner_dragonfly_step(d, average_speed, cumulated_pos, food, enemy, N,
+                           base, limit, base_random);
+    }
+#endif
 
-    unsigned int rank = omp_get_thread_num();
-    unsigned int base = ratio * rank;
-    unsigned int limit = ratio * (rank + 1);
+    if (rest != 0) {
+      unsigned int r_base = ratio * NR_THREADS;
+      unsigned int r_end = d->N;
 
-    float S;
-    float A;
-    float C;
-    float F;
-    float E;
-    float levy;
-
-    float *cur_pos;
-    float *cur_speed;
-
-    for (unsigned int j = base; j < limit; j++) {
-      cur_pos = d->positions + j * dimensions;
-      cur_speed = d->speeds + j * dimensions;
-
-      // compute speed = sSi + aAi + cCi + fFi + eEi + w
-
-      for (unsigned int i = 0; i < dimensions; i++) {
-        S = (cumulated_pos[i] / ((float)N)) - cur_pos[i];
-        A = average_speed[i];
-        C = (cumulated_pos[i] / (float)N) - cur_pos[i];
-        F = food[i] - cur_pos[i];
-        E = enemy[i] + cur_pos[i];
-        levy = RAND_FLOAT(1.0, &d->seed);
-
-        cur_speed[i] *= d->w.w;
-        cur_speed[i] += d->w.s * S;
-        cur_speed[i] += d->w.a * A;
-        cur_speed[i] += d->w.c * C;
-        cur_speed[i] += d->w.f * F;
-        cur_speed[i] += d->w.e * E;
-        cur_speed[i] += levy;
-
-        cur_pos[i] += cur_speed[i];
-      }
+      inner_dragonfly_step(d, average_speed, cumulated_pos, food, enemy, N,
+                           r_base, r_end, base_random);
     }
   }
-  if (rest != 0) {
-    unsigned int r_base = ratio * NR_THREADS;
-    unsigned int r_end = d->N - 1;
-
-    for (unsigned int j = r_base; j <= r_end; j++) {
-      float *cur_pos = d->positions + j * dimensions;
-      float *cur_speed = d->speeds + j * dimensions;
-
-      // compute speed = sSi + aAi + cCi + fFi + eEi + w
-
-      for (unsigned int i = 0; i < dimensions; i++) {
-        float S = (cumulated_pos[i] / ((float)N)) - cur_pos[i];
-        float A = average_speed[i];
-        float C = (cumulated_pos[i] / (float)N) - cur_pos[i];
-        float F = food[i] - cur_pos[i];
-        float E = enemy[i] + cur_pos[i];
-        float levy = RAND_FLOAT(1.0, &d->seed);
-
-        cur_speed[i] *= d->w.w;
-        cur_speed[i] += d->w.s * S;
-        cur_speed[i] += d->w.a * A;
-        cur_speed[i] += d->w.c * C;
-        cur_speed[i] += d->w.f * F;
-        cur_speed[i] += d->w.e * E;
-        cur_speed[i] += levy;
-
-        cur_pos[i] += cur_speed[i];
-      }
-    }
-  }
-
   weights_step(&d->w);
-  printf("END\n");
 }
-
+/*
 void computation_accumulate_multithread(ComputationStatus *message,
                                         Dragonfly *d, float *best,
                                         float *best_fitness,
@@ -279,6 +284,7 @@ fflush(stdout);
     printf("rank=%d, base=%d, limit=%d\n", rank, base, limit);
     fflush(stdout);
     for (unsigned int k = base; k < limit; k++) {
+      printf("k=%d\n", k);
       float *cur_pos = d->positions + dim * k;
       sum_assign(message->cumulated_pos, cur_pos, dim);
       sum_assign(message->cumulated_speeds, d->speeds + dim * k, dim);
@@ -298,9 +304,10 @@ fflush(stdout);
       }
 
       message->n += 1;
+      printf("kend=%d\n", k);
     }
   }
-
+  printf("END FIRST CYCLE\n");
   if (rest != 0) {
     unsigned int r_base = ratio * NUM_THREADS;
     unsigned int r_end = d->N - 1;
@@ -325,8 +332,9 @@ fflush(stdout);
       message->n += 1;
     }
   }
-}
-#endif
+  printf("END Function\n");
+  fflush(stdout);
+}*/
 
 void dragonfly_compute_step_serial(Dragonfly *d, float *average_speed,
                                    float *cumulated_pos, float *food,
@@ -385,9 +393,9 @@ void dragonfly_compute_step_serial(Dragonfly *d, float *average_speed,
   weights_step(&d->w);
 }
 
-void computation_accumulate_serial(ComputationStatus *status, Dragonfly *d,
-                                   float *best, float *best_fitness,
-                                   unsigned int NUM_THREADS) {
+void computation_accumulate(ComputationStatus *status, Dragonfly *d,
+                            float *best, float *best_fitness,
+                            unsigned int NUM_THREADS) {
   (void)(NUM_THREADS);
   unsigned int dim = d->dim;
   zeroed(status->cumulated_pos, dim);
@@ -418,6 +426,7 @@ void computation_accumulate_serial(ComputationStatus *status, Dragonfly *d,
   }
 }
 
+/*
 void computation_accumulate(ComputationStatus *status, Dragonfly *d,
                             float *best, float *best_fitness,
                             unsigned int NUM_THREADS) {
@@ -431,8 +440,8 @@ void computation_accumulate(ComputationStatus *status, Dragonfly *d,
 
         fprintf(
             stderr,
-            "Cannot call computation accumulate serial with more than 1 threads\n");
-        exit(1);
+            "Cannot call computation accumulate serial with more than 1
+threads\n"); exit(1);
 
     #endif
   }
@@ -445,15 +454,15 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     dragonfly_compute_step_serial(d, average_speed, cumulated_pos, food, enemy,
                                   N, NUM_THREADS);
   } else {
-    #ifdef USE_OPENMP
+#ifdef USE_OPENMP
     printf("Using %d threads\n", NUM_THREADS);
-        dragonfly_compute_step_multithread(d, average_speed, cumulated_pos, food,
-                                          enemy, N, NUM_THREADS);
-    #else
-        fprintf(stderr, "Cannot call dragonfly compute steps serial with more than "
-                        "1 threads\n");
-        exit(1);
+    dragonfly_compute_step_multithread(d, average_speed, cumulated_pos, food,
+                                       enemy, N, NUM_THREADS);
+#else
+    fprintf(stderr, "Cannot call dragonfly compute steps serial with more than "
+                    "1 threads\n");
+    exit(1);
 
-    #endif
+#endif
   }
-}
+}*/

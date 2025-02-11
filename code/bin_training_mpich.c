@@ -1,6 +1,7 @@
 #include "dragonfly-common.h"
 #include "utils.h"
 #include <mpi.h>
+#include <omp.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,7 +88,7 @@ int main(int argc, char **argv) {
   srand(time(NULL) + rank);
   Fitness fitness = eval;
   Parameters p = parameter_parse(argc, argv);
-  printf("%d\n", p.threads_per_process);
+  omp_set_num_threads(p.threads_per_process);
 
   float wi[14] = {
       0.000000,
