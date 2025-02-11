@@ -1,7 +1,6 @@
 #include "dragonfly-common.h"
 #include "stdlib.h"
 #include "string.h"
-#include "utils-special.h"
 #include "utils.h"
 
 #include <stdbool.h>
@@ -14,7 +13,7 @@
 // n, chunks, iterations, dim
 Parameters parameter_parse(int argc, char* argv[]){
   Parameters p;
-  if(argc!=5){
+  if(argc!=6){
     fprintf(stderr, "invalid parameter count: expected n, chunks, iterations, dimensions");
     exit(-1);
   }
@@ -22,7 +21,10 @@ Parameters parameter_parse(int argc, char* argv[]){
   p.chunks=atoi(argv[2]);
   p.iterations=atoi(argv[3]);
   p.dim=atoi(argv[4]);
-  if(p.n==0 || p.chunks==0 || p.iterations==0 || p.dim==0){
+
+  p.threads_per_process=atoi(argv[5]);
+
+  if(p.n==0 || p.chunks==0 || p.iterations==0 || p.dim==0 || p.threads_per_process==0){
     fprintf(stderr, "invalid parameter they must be all bigger than 1 (and integers)");
     exit(-1);
   }
@@ -218,6 +220,9 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
       exit(-1);
     }
   #endif
+  if (p.threads_per_process>1){
+
+  }
   // compute start and end rank
   unsigned int start_chunk = rank_id*(p.chunks/threads) + min(rank_id, p.chunks%threads);
   unsigned int current_chunks = p.chunks/threads + (rank_id<(p.chunks%threads));
@@ -264,7 +269,7 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
 
     // compute avarage speed and positions
     for(unsigned int j=0; j<current_chunks; j++){
-      computation_accumulate(&message.status[j+start_chunk], &d[j], best, &best_fitness);
+      computation_accumulate(&message.status[j+start_chunk], &d[j], best, &best_fitness, p.threads_per_process);
     }
     message.start_chunk=start_chunk;
     message.end_chunk=end_chunk;
@@ -286,7 +291,7 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
         if(start_chunk<=j+k && j+k<end_chunk){
           dragonfly_compute_step(&d[j+k-start_chunk], message.status[j].cumulated_speeds,
                             message.status[j].cumulated_pos, message.status[j].next_food,
-                            message.status[j].next_enemy, message.status[j].n);
+                            message.status[j].next_enemy, message.status[j].n, p.threads_per_process);
         }
       }
     }
@@ -294,7 +299,7 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
   // check last iteration
   // compute avarage speed and positions
   for(unsigned int j=0; j<current_chunks; j++){
-      computation_accumulate(&message.status[j+start_chunk], &d[j], best, &best_fitness);
+      computation_accumulate(&message.status[j+start_chunk], &d[j], best, &best_fitness, p.threads_per_process);
     }
   message.start_chunk=start_chunk;
   message.end_chunk=end_chunk;

@@ -42,7 +42,7 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  Parameters p = {.n = 128, .dim = 10, .chunks = 64, .iterations = 80};
+  Parameters p = {.n = 128, .dim = 10, .chunks = 64, .iterations = 80, .threads_per_process = 1};
 
   Fitness fitness = shifted_fitness;
   float avg = 0.0;
@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
   srand(time(NULL) + rank);
   Fitness fitness = eval;
   Parameters p = parameter_parse(argc, argv);
+  printf("%d\n", p.threads_per_process);
 
   float wi[14] = {
       0.000000,

@@ -63,7 +63,7 @@ typedef struct{
 
 
 typedef struct {
-  unsigned int n, chunks, iterations, dim;
+  unsigned int n, chunks, iterations, dim, threads_per_process;
 } Parameters;
 
 Parameters parameter_parse(int argc, char *argv[]);

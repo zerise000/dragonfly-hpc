@@ -25,4 +25,10 @@ float shifted_fitness(float *inp, unsigned int* seed, unsigned int dim);
 void init_shifted_fitness(float *tmp, float * rotation, float * shift, Fitness fitness);
 void init_matrix(float *inp, float range_max, unsigned int dim, unsigned int *seed);
 
+
+void dragonfly_compute_step(Dragonfly *d, float *average_speed,
+    float *cumulated_pos, float *food, float *enemy,
+    unsigned int N, unsigned int NUM_THREADS);
+void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* best, float* best_fitness, unsigned int NUM_THREADS);
+
 #endif
