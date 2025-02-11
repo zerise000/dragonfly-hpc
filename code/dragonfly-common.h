@@ -1,7 +1,7 @@
 #ifndef DA_COMMON
 #define DA_COMMON
 #define MESSAGE_SIZE 16
-#define MAX_CHUNKS 1024
+#define MAX_CHUNKS 4048
 
 typedef struct {
   float sl[2], al[2], cl[2], fl[2], el[2], wl[2], ll[2];
