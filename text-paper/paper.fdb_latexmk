@@ -1,15 +1,15 @@
 # Fdb version 4
-["bibtex paper"] 1739206786.20665 "paper.aux" "paper.bbl" "paper" 1739206808.50376 0
-  "./references.bib" 1739095983.44283 863 5bb649d39a36923dc20a8ce8b75f5552 ""
+["bibtex paper"] 1739471664.11175 "paper.aux" "paper.bbl" "paper" 1739471665.44571 0
+  "./references.bib" 1739451910.91861 863 5bb649d39a36923dc20a8ce8b75f5552 ""
   "/usr/share/texlive/texmf-dist/bibtex/bst/base/unsrt.bst" 1292289607 18030 1376b4b231b50c66211e47e42eda2875 ""
-  "paper.aux" 1739206808.2272 1174 6f8d9e1c737ed6eb19725bfea5be8a2f "pdflatex"
+  "paper.aux" 1739471665.06215 1265 1c7c850fcd72ca17d7d89efd3d3cec8b "pdflatex"
   (generated)
   "paper.bbl"
   "paper.blg"
   (rewritten before read)
-["pdflatex"] 1739206807.77487 "/home/mattia/uni/lezioni/HPC/text-paper/paper.tex" "paper.pdf" "paper" 1739206808.50404 0
+["pdflatex"] 1739471664.2537 "/home/mattia/uni/lezioni/HPC/text-paper/paper.tex" "paper.pdf" "paper" 1739471665.44632 0
   "/etc/texmf/web2c/texmf.cnf" 1726938617.39703 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/home/mattia/uni/lezioni/HPC/text-paper/paper.tex" 1739206807.58621 11772 65d6432f5e2f3ef2989773d123047395 ""
+  "/home/mattia/uni/lezioni/HPC/text-paper/paper.tex" 1739471662.62715 16800 eae256f33b7c109f7246d355986a82b2 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm" 1136768653 1408 5937f58aa508ea2cea4901c07d10f5fe ""
@@ -93,10 +93,11 @@
   "/usr/share/texmf/web2c/texmf.cnf" 1707919699 40399 f2c302f7d2af602abb742093540a5834 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1726940363.48554 5472669 54eaf61a88b6b7896ebd0dac973cb29c ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1726940411 8215096 64337aebe6f2ff9d94de48855a6d1d77 ""
-  "chunks.png" 1739205296.89491 38370 46fdded9e83591250b0f20c6cc2133ab ""
-  "paper.aux" 1739206808.2272 1174 6f8d9e1c737ed6eb19725bfea5be8a2f "pdflatex"
-  "paper.bbl" 1739206786.29632 827 fdd45169db8ac5e6d0d47f02b1ed6e03 "bibtex paper"
-  "paper.tex" 1739206807.58621 11772 65d6432f5e2f3ef2989773d123047395 ""
+  "chunks.png" 1739451910.91761 38370 46fdded9e83591250b0f20c6cc2133ab ""
+  "paper.aux" 1739471665.06215 1265 1c7c850fcd72ca17d7d89efd3d3cec8b "pdflatex"
+  "paper.bbl" 1739471664.24815 827 fdd45169db8ac5e6d0d47f02b1ed6e03 "bibtex paper"
+  "paper.tex" 1739471662.62715 16800 eae256f33b7c109f7246d355986a82b2 ""
+  "reduce-example.png" 1739471499.64545 28632 0577ecc39f2ad0f7b20f0daab34dfe96 ""
   (generated)
   "paper.aux"
   "paper.log"

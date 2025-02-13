@@ -171,68 +171,127 @@ global status of by sending messages to all other dragonfly chunks.
   \caption{illustration of communication between chunks}
 \end{figure}
 
+\section{parallelization with MPI}
 
-\section{Performace tests}
+OpenMPI is a library that enables code execution on multiple cores, wheter they belong
+to the same CPU or not; it can be useful in case of performace improvement of those algorihms
+that require to solve complex tasks, just like the dragonfly algorithm: in fact this library can be easily 
+adapted to the illustrated implementation in order to boost performance.
 
-The serial implementation seen above can be easily tried out using some test function 
-with known global minima in order to check the overall performances. We need to 
-report time execution for each test function, using the input dimension as independent variable;
-since however we have multiple input parameters to compare, we also have to decide which one will 
-be considered during the performance evaluation.
+\subsection*{MPI on chunks}
+As we said earlier chunks are independent from each otherm but usually they need to comunicate
+with their neighbours in order to keep updated the global status of the program execution. 
+It is possible to run chunks groups simoultaneously, using MPI builtin function to connect 
+the processes.  The instructions computed by each process are available in a custom function
+called \textit{dragonfly-compute}; after calculating the ID of the initial and final chunks
+and initializing message structures using the \textbf{offsetof} macro
+the function will execute the update loop that calculates the new velocities and positions 
+of the dragonfly for each chunk associated. To do this we first need to update the current
+location of enemies and food present in the chunk using the function \textbf{computation\_status\_merge},
+using the position of food and enemies of other chunks retrieved by the function \textbf{message\_broadcast};
+finally the process will proceed to update current position and velocities of dragonfiles using 
+the function \textbf{dragonfly\_compute\_step} illustrated earlier
 
-\begin{table}[H]
-\begin{tabular}{| c | c | c | c |}
-  \hline
-  \textit{Nr of iterations} & \textbf{sphere [ms]} & \textbf{rosenblock [ms]} & \textbf{rastrigin [ms]}\\
-  \hline
-  10 \\
-  \hline
+\subsection*{MPI and parameters}
+Since MPI has been useful in the parallelization of the chunks then it can also become useful in
+the training of parameters
 
-  100 \\
-  \hline
+\section{OpenMP implementation}
 
-  1000 \\
-  \hline
+OpenMP is a low level API that allows us to execute a sequence of instructions on different threads belonging
+to the same CPU core, improving in this way the performances of our implementation. This feature can be used to 
+speed up the execution of some slow functions, in our case these will be dragonfly-compute-step and message-accumulate
 
-  10000 \\ 
-  \hline
+\subsection*{General use}
 
-  100000 \\
-  \hline
-\end{tabular}
+First of all it is necessary to understand how OpenMP should be inserted in the code: first of all we have to use 
+a compiler that supports this technology, in our case we have gcc, which allows OpenMP execution thanks to the flag -fopenmp.
+Second we need to include a pragma directive in our code, which will wrap the set of instructions that we are interested to execute
+in parallel. Since the implemented results will perform loops mainly then it is fundamental to calculate the work balance between the number of iterations, if the main
+body is a loop,
+and the number of threads available. Each thread has to define the starting and the end point of the loop that has to execute,
+calculating the starting index as $rank*ratio$ and the end one as $ratio*(rank+1)$, where $rank$ is the ID of the thread
 
-\end{table}
+\subsection*{dragonfly-compute-step}
 
-\begin{table}[H]
-  \begin{tabular}{| c | c | c | c |}
-    \hline
-    \textit{Nr of iterations} & \textbf{sphere [ms]} & \textbf{rosenblock [ms]} & \textbf{rastrigin [ms]}\\
-    \hline
-    10 \\
-    \hline
+One of the two functions that we are interested to execute using OpenMP is \textit{dragonfly-compute-step}:
+if we take a look on the serial version we notice that each computation step is independent
+from other iterations. This means that the execution flow can be split in many subtasks assigned
+to threads. The following code snippet illustrate how all the procedure has been implemented
+\begin{lstlisting}[language=C,caption={parallelized dragonfly-compute-step}]
   
-    100 \\
-    \hline
+
+void dragonfly_compute_step(Dragonfly *d, 
+                            float *average_speed,
+                            float *cumulated_pos, 
+                            float *food, 
+                            float *enemy, 
+                            unsigned int N, 
+                            unsigned int NR_THREADS) {
+
+  unsigned int base_random = rand_r(&d->seed);
+  unsigned int rest = d->N % NR_THREADS;
+  unsigned int ratio = d->N / NR_THREADS;
+
+  ...
+
+  #pragma omp parallel num_threads(NR_THREADS)
+    {
+      
+      unsigned int rank = omp_get_thread_num();
+      //printf("rank=%d\n", rank);
+      unsigned int base = ratio * rank;
+      unsigned int limit = ratio * (rank + 1);
+      inner_dragonfly_step(d, average_speed, 
+                          cumulated_pos, food, 
+                          enemy, N,
+                          base, limit, base_random);
+    }
   
-    1000 \\
-    \hline
-  
-    10000 \\ 
-    \hline
-  
-    100000 \\
-    \hline
-  \end{tabular}
-\end{table}
+  ...
 
-\noindent As we can see the execution time increases exponentially with the consequentially increase of
-the input.
+  if (rest != 0) {
+      unsigned int r_base = ratio * NR_THREADS;
+      unsigned int r_end = d->N;
 
-\section{Parallel implementation}
+      inner_dragonfly_step(d, average_speed, 
+                           cumulated_pos, 
+                           food, enemy, N,
+                           r_base, r_end, base_random);
+    }
+  }
 
-\section{Parameters Retrievement}
+  weights_step(&d->w);
+}
 
-\section{Speedup and final conclusions}
+\end{lstlisting}
+
+
+\noindent After we got all basic informations the \textit{inner\_dragonfly\_step}
+function can be executed, wrapping it into the \textbf{pragma} directive that we have seen earlier: in this way each thread will 
+perform the necessary operations only on a specific portion of the overall positions and speeds arrays.
+If the number of threads does not divide perfectly the size of the arrays then we compute the rest
+returned from the ratio calculation and the remaining cells will be processed using the serial approach.
+
+\subsection*{computation\_accumulate}
+
+The \textit{computation\_accumulate}  must compute
+the cumulated positions and speeds of the chunk and find the best food and enemy positions.
+The implementation of a parallelized approach in this case  is more complicated to achieve, 
+because threads should read and write on the same memeory areas which could be 
+difficult to execute independently from each other. This time it is necessary to define
+local buffers for each thread, so they can store temporary results without the risk of using
+overlapping memeory locations. The parallel section provides that each thread must compute the local
+cumulated sums of velocities and positions, then they must select the position with the best fitness value
+in order to find the best local position of food and enemies. Once the local execution is completed
+it will update the global status of the chunk using a critical section, with one thread that can execute that
+specific portion of the program
+
+\begin{figure}[H]
+  \includegraphics[scale=0.2]{reduce-example.png}
+  \centering
+  \caption{Illustration of the reduce process performed by the computation\_accumulate function}
+\end{figure}
 
 \end{multicols}
 
