@@ -11,6 +11,7 @@
 \usepackage{xcolor}
 \usepackage{float}
 \usepackage{longtable}
+\usepackage{cite}
 
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -88,132 +89,136 @@ This procedure is simulated through the observation of repetitive patterns obser
   \item Distraction of enemies, represented by the equation $ E_i = E^- + P$ where $E^-$ is the position of the current enemy 
 \end{itemize}
 
-\noindent Once all the parameters have been calculated we can now update the current step vector of each dragonfly using the following equation: $$\Delta P^{t+1}_{i} = (sS_i + aA_i + fF_i + cC_i) + \omega\Delta P^t_i$$ where $s,a,f,c$ are respectevly the separation weight, the alignment weight, the attraction weight, the cohesion weight and $\omega$ is the inertia weight, all of them are randomly chosen in the interval $[0,1]$. When all step vectors have been updated we can now set the new position of the dragonflies using this equation, which takes the new step vector as an input: $$P^{t+1}_{i} = P_i^t + \Delta P_{i}^{t+1}$$. However if there is a dragonfly which does not have any neighbour then we assume that the overall population moves in a random way: the most common method to do that is to use a random walk function. The previous formula then must be modified into this one here: $$P^{t+1}_i = P_i^t + Levy(d)$$ where $d$ is the dimension of the position vector, and $Levy(d)$ is the Levy flight function, which is calculated in this way: $$Levy(d) = 0.01\times\frac{r_1 \times \sigma}{|r_2|^{\frac{1}{\beta}}}$$ where $r1$ and $r2$ are two random numbers uniformally distributed in the interval $[0,1]$, and $\sigma$ is a vector calculated using the following formula: $$\sigma = \frac{sin(\frac{\beta\pi}{2})\times\Gamma(1+\beta)}{\Gamma(\frac{\beta+1}{2})\times \beta \times 2^{(\beta-1)/2}}$$ where $\Gamma(x)$ is the gamma function \cite{WikiGamma}, and $\beta$ is a constant.Another valid approach is to apply, instead of Levy flight, the brownian motion model, used especially in gas and particle analysis: this seems to return better performances \cite{BDragonfly}. 
+\noindent Once all the parameters have been calculated we can now update the current step vector of each dragonfly using the following equation: $$\Delta P^{t+1}_{i} = (sS_i + aA_i + fF_i + cC_i) + \omega\Delta P^t_i$$ where $s,a,f,c$ are respectevly the separation weight, the alignment weight, the attraction weight, the cohesion weight and $\omega$ is the inertia weight, all of them are randomly chosen in the interval $[0,1]$. When all step vectors have been updated we can now set the new position of the dragonflies using this equation, which takes the new step vector as an input: $$P^{t+1}_{i} = P_i^t + \Delta P_{i}^{t+1}$$However if there is a dragonfly which does not have any neighbour then we assume that the overall population moves in a random way: the most common method to do that is to use a random walk function. The previous formula then must be modified into this one here: $$P^{t+1}_i = P_i^t + Levy(d)$$ where $d$ is the dimension of the position vector, and $Levy(d)$ is the Levy flight function, which is calculated in this way: $$Levy(d) = 0.01\times\frac{r_1 \times \sigma}{|r_2|^{\frac{1}{\beta}}}$$ where $r1$ and $r2$ are two random numbers uniformally distributed in the interval $[0,1]$, and $\sigma$ is a vector calculated using the following formula: $$\sigma = \frac{sin(\frac{\beta\pi}{2})\times\Gamma(1+\beta)}{\Gamma(\frac{\beta+1}{2})\times \beta \times 2^{(\beta-1)/2}}$$ where $\Gamma(x)$ is the gamma function \cite{WikiGamma}, and $\beta$ is a constant.Another valid approach is to apply, instead of Levy flight, the brownian motion model, used especially in gas and particle analysis: this seems to return better performances \cite{BDragonfly}. 
 
 
 
 
-\section{first approach}
+\section{General approach}
 
 Now that we have seen the overall procedure it is possible to write a naive implementation of the algorithm in order to 
 have a base for further developments. An example of the implementation can be observed in the following code snippet:
 
 
 \begin{lstlisting}[language=C,caption={first implementation of the dragonfly algorithm}]
-  void dragonfly_algorithm(Dragonfly *d,
-                          float *average_speed, 
-                          float *cumulated_pos, 
-                          float * food, 
-                          float * enemy, 
-                          unsigned int N) {
+void dragonfly_algorithm(Dragonfly *d, 
+                        float *average_speed,
+                        float *cumulated_pos, 
+                        float *food, 
+                        float *enemy,
+                        unsigned int N, 
+                        unsigned int random_seed) {
 
-    unsigned int dim = d->dim;
-      // for each dragonfly
-    for (unsigned int j = 0; j < d->N; j++) {
-      float *cur_pos = d->positions + dim * j;
-      float *cur_speed = d->speeds + dim * j;
+  unsigned int dimensions = d->dim;
+  float S;
+  float A;
+  float C;
+  float F;
+  float E;
+  float levy;
 
-      // compute separation: Si = -sumall(X-Xi)
-      memcpy(d->S, cumulated_pos, sizeof(float) * dim);
-      scalar_prod_assign(d->S, 1.0/(float)N, dim);
-      sub_assign(d->S, cur_pos, dim);
-      scalar_prod_assign(d->S, d->w.s, dim);
+  float *cur_pos;
+  float *cur_speed;
 
-      // compute alignament: Ai = avarage(Vi)
-      memcpy(d->A, average_speed, sizeof(float) * dim);
-      scalar_prod_assign(d->A, d->w.a, dim);
+  for (unsigned int j = 0; j < d->N; j++) {
+    unsigned random = random_seed + j;
+    cur_pos = d->positions + j * dimensions;
+    cur_speed = d->speeds + j * dimensions;
 
-      // compute cohesion: Ci = avarage(Xi)-X
-      memcpy(d->C, cumulated_pos, sizeof(float) * dim);
-      scalar_prod_assign(d->C, 1.0 / (float)N, dim);
-      sub_assign(d->C, cur_pos, dim);
-      scalar_prod_assign(d->C, d->w.c, dim);
+    // compute speed = sSi + aAi + cCi + fFi + eEi + w
 
-      // food attraction: Fi=X_food - X
-      memcpy(d->F, food, sizeof(float) * dim);
-      sub_assign(d->F, cur_pos, dim);
-      scalar_prod_assign(d->F, d->w.f, dim);
+   for (unsigned int i = 0; i < dimensions; i++) {
+      S = ((cumulated_pos[i] - cur_pos[i]) / (float)N);
+      A = average_speed[i];
+      C = (cumulated_pos[i] / (float)N) - cur_pos[i];
+      F = food[i] - cur_pos[i];
+      E = enemy[i] + cur_pos[i];
+      levy = RAND_FLOAT(1.0, &random);
 
-      // enemy repulsion: E=X_enemy+X
-      memcpy(d->E, enemy, sizeof(float) * dim);
-      sum_assign(d->E, cur_pos, dim);
-      scalar_prod_assign(d->E, d->w.e, dim);
+      cur_speed[i] *= d->w.w;
+      cur_speed[i] += d->w.s * S;
+      cur_speed[i] += d->w.a * A;
+      cur_speed[i] += d->w.c * C;
+      cur_speed[i] += d->w.f * F;
+      cur_speed[i] += d->w.e * E;
+      cur_speed[i] += levy;
 
-      brownian_motion(d->levy, dim, &d->seed);
-
-
-      // compute speed = sSi + aAi + cCi + fFi + eEi + w
-      scalar_prod_assign(cur_speed, d->w.w, dim);
-      sum_assign(cur_speed, d->E, dim);
-      sum_assign(cur_speed, d->F, dim);
-      sum_assign(cur_speed, d->C, dim);
-      sum_assign(cur_speed, d->A, dim);
-      sum_assign(cur_speed, d->S, dim);
-      sum_assign(cur_speed, d->levy, dim);
-
-      // update current pos
-      sum_assign(cur_pos, cur_speed, dim);
+      cur_pos[i] += cur_speed[i];
     }
-
-    // update weights
-    weights_step(&d->w);
   }
+}
 \end{lstlisting}
 
-
-
-\noindent  As you can see this implementation use heavily the sum\_assign and similar functions, which we define to ease the computation and keep them similar to the mathematical notation.
-
-After the initialization of velocities and positions of agents,
+\noindent After the initialization of velocities and positions of agents,
 which will be represented by two separated matricies with the same dimension equal to the number of members of our
-population times the dimension of our problem, the algorithm starts to execute a for loop with a fixed amount of iteration stored in the variable $d\rightarrow N$, 
-and will repeatetly compute the following steps:
+population times the dimension of our problem, the algorithm starts to execute a for loop 
+with a fixed amount of iteration stored in the variable $d\rightarrow N$,  retrieve
+the position and the velocity of the current dragonfly, represented by pointers
+\textit{cur\_pos} and \textit{cur\_speed},
+and the cumulated coordinates of its neighbours. 
+The execution then proceed with the following steps:
+
 \begin{itemize}
   \item retrieve current speed and position of the j-th dragonfly
   \item compute separation, alignment, cohesion, food attraction and enemy distraction vectors,
-  stored into arrays placed in the struct Dragonfly
-  \item calculate product between weigths and arrays
+  stored into local variables named with their abrreviations
+  \item calculate product between weigths and and the single coordinates of the velocity array
   \item update speed and position the dragonfly considering also brownian motion
 \end{itemize}
+
+\noindent Notice how the computation
+of velocities and speed coordinates is compacted into the same \textbf{for} loop;
+this allows to reduce time execution, because the overall calculation is made locally
+all in the same place, leaving out the necessity of using auxiliary arrays for the coefficients.
+The reason why we divide the separation coefficient for the number of neighbours 
+will be explained later in this paper
+
+\subsection*{chunks}
+
+As anticipated earlier dragonfly algorithm, as many other swarm optimization solutions,
+has a good chance to be stuck into a local minima, without the possibility to find better
+candidates. We can avoid this and improve this approach introducing groupments of dragonflies into chunks, 
+calculating local minima of different areas and compare them in order
+to get as close as possible to the global solution.  
+
+\begin{figure}[H]
+  \includegraphics[scale=0.3]{img/chunks.png}
+  \centering
+  \caption{illustration of communication between chunks}
+\end{figure}
+
+\noindent The implementation of this process is quite simple: each chunk will contain a subset
+of components of the global population that will specialize to compute the point with the best local
+fitness for both enemies and food of that specific region, then the local status will be communicated
+to all other chunks, updating in this way the global status of the program thanks to the update of positions,
+and the local configuration of each region; the algorithm ends displaying the best fitness found
+during the execution.
+
+
 \section{Critical analysis of the coefficients}
 From this implementation we discovered some critical points that should be improved:
 \begin{itemize}
-  \item Chunks: In the paper and in the algorithm often uses the therm neighbours without giving a precise definition.
+  \item In the original paper\cite{Original} and in the algorithm often uses the therm neighbours without giving a precise definition.
   Assuming a general distance metric (eg Euclidean Distance), could be an option, but later in the paper it describes how the alghorithm runs in linear time with respect to the number of dragonflies and the iteration count.
   This would be false in case of euclidean distance, because in order to define for each butterfly the neighbours, we should calculate the distance between each pair of dragonflies, which would lead to a time complexity of $O(N^2)$.
   Maybe using some complex geospatial algorithms it could be possible to archive that, but we doubt this was the original intention of the authors.
   Later in the paper also another crithical problem in respect to other algorithm was the premature convergence. So we decided to divide the population in chunks, and progressively merge chunks until we will remain with only one.
   So in this way we addressed both problems.
-  \item Stability: In order to be a solid algorithm it must be garanteed that does not exist some values that would make the solution diverge.
-  As a first approach we introduced a max_speed parameter that would change over time and would assure stability. But given that in the original paper it was not described we omitted from later implementations.
+  \item In order to be a solid algorithm it must be garanteed that does not exist some values that would make the solution diverge.
+  As a first approach we introduced a max\_speed\ parameter that would change over time and would assure stability. 
+  But given that in the original paper it was not described we omitted from later implementations.
   This lead to instabilities from the enemy coefficient (if bigger than 0.5), but mainly from the separation coefficient.
-  This is a problem, because we could be see the coefficient as n times the distance between the dragonfly and the average position of the population. For example if the distance is 0.001, but there are 1000 dragonflies in the neighbourhood, then the coefficient would be 1, at the very next iteration the dragonflies would have a distance of 1 from the center and so on, causing an exponential growth.
-  In order to fix this we modify the separation formula as: $S_i = - \frac{\sum^M_{j=1}{P - P_j}}{N}$.
+  This is a problem, because we could be see the coefficient as n times the distance between the dragonfly and the average position of the population. For example if the distance is 0.001, 
+  but there are 1000 dragonflies in the neighbourhood, then the coefficient would be 1, at the very next iteration the dragonflies would have a distance of 1 from the center and so on, causing an exponential growth.
+  In order to fix this we modify the separation formula as: $S_i = - \frac{\sum^M_{j=1}{P - P_j}}{M}$.
+
   \item  The enemy coefficient does not represent what the author describes. The sum of vectors does not necessarily point outwards in respect to the enemy (eg with aligned pos vectors). 
   We assumed a typo, but even the difference of the vectors would not be enough, because if the enemy is too close to the dragonfly, the difference would get smaller and not bigger.
   A possible solution would be to normalize the difference vector with the inverse of the vector length, but the formulation would have been to different from the original one. So we decided to keep the original formulation and see if it actualy would do something.
-  
-  
-\subsection*{chunks}
+\end{itemize}
 
 
-
-We can improve this approach introducing groupments of dragonflies into chunks, 
-allowing us to calculate local minima of different areas and compare them in order
-to get as close as possible to the global minima. which will be considered
-autonomous agents that will calculate local minima of our fitness function, updating then the 
-global status of by sending messages to all other dragonfly chunks. 
-
-\begin{figure}[H]
-  \includegraphics[scale=0.3]{chunks.png}
-  \caption{illustration of communication between chunks}
-\end{figure}
-
-
-A
-
-
-\section{parallelization with MPI}
+\section{Parallelization with MPI}
 
 OpenMPI is a library that enables code execution on multiple cores, wheter they belong
 to the same CPU or not; it can be useful in case of performace improvement of those algorihms
@@ -236,7 +241,7 @@ the function \textbf{dragonfly\_compute\_step} illustrated earlier
 
 \subsection*{MPI and parameters}
 Since MPI has been useful in the parallelization of the chunks then it can also become useful in
-the training of parameters
+the training of parameters.
 
 \section{OpenMP implementation}
 
@@ -260,9 +265,8 @@ One of the two functions that we are interested to execute using OpenMP is \text
 if we take a look on the serial version we notice that each computation step is independent
 from other iterations. This means that the execution flow can be split in many subtasks assigned
 to threads. The following code snippet illustrate how all the procedure has been implemented
-\begin{lstlisting}[language=C,caption={parallelized dragonfly-compute-step}]
-  
 
+\begin{lstlisting}[language=C,caption={parallelized dragonfly-compute-step}]
 void dragonfly_compute_step(Dragonfly *d, 
                             float *average_speed,
                             float *cumulated_pos, 
@@ -304,7 +308,8 @@ void dragonfly_compute_step(Dragonfly *d,
   }
 
   weights_step(&d->w);
-}
+  
+  }
 
 \end{lstlisting}
 
@@ -323,16 +328,100 @@ The implementation of a parallelized approach in this case  is more complicated 
 because threads should read and write on the same memeory areas which could be 
 difficult to execute independently from each other. This time it is necessary to define
 local buffers for each thread, so they can store temporary results without the risk of using
-overlapping memeory locations. The parallel section provides that each thread must compute the local
+overlapping memeory locations. 
+\begin{figure}[H]
+  \includegraphics[scale=0.2]{img/reduce-example.png}
+  \centering
+  \caption{Illustration of the reduce process performed by the computation\_accumulate function}
+\end{figure}
+\noindent The parallel section provides that each thread must compute the local
 cumulated sums of velocities and positions, then they must select the position with the best fitness value
 in order to find the best local position of food and enemies. Once the local execution is completed
 it will update the global status of the chunk using a critical section, with one thread that can execute that
 specific portion of the program
 
+\section{Final execution and results}
+Now that we have described all the procedure it is time to illustrate how 
+the algorithm has been executed. This job has been performed by the
+High Performance Computing cluster at University of Trento, which 
+use a particular technology called PBS to handle multiple tasks at the same
+time: this feature comes useful in our case since, as we will see later, we 
+execute multiple istances of the same problem
+\subsection*{structure of the execution}
+
+As anticipated we will execute the same problem using multiple instances with different amount of
+resources in order to get a complete evaluation of performance. The overall execution use from 1 to 8
+threads, and 4 to 1024 cores
+
+\subsection*{performace theory}
+
+After the end of all tasks it is possible to check how much gain in performance we have obtained.
+To do this it is necessary to introduce some theoretical concepts that will give us the tools that
+will give us a good metric system to evaluate our results.Speedup is defined as the ratio between the the execution times of the serial and parallel
+implementations, so the formula will be equal to: $$Speedup = \frac{T_{serial}}{T_{parallel}}$$ 
+from this definition it is obvious that the more the speedup is the more the parallel implementation
+performs better. There is a particular case where the time execution of the denominator can be defined
+as $T_{parallel}=T_{serial}/p$, where \textit{p} is the number of cores: this is called \textit{linear speedup},
+and in this situation it perfectly match with the classic speedup coefficient
+Efficiency is another important parameter, and it is defined by the ratio of the speedup and the 
+number of cores, giving the following formula: $$E = \frac{Speedup}{p}$$
+also in this case the efficiency decrease due to the increase of the number of cores. In case
+of linear speedup we get that the efficiency is equal to the inverse of $p$
+\subsection*{results}
+Now it is possible to show results obtained from the cluster,
+using the configuration with 4 cores and 1 thread will be considered
+equal as the serial time
+\newline
+
+\begin{tabular}{| c | c | c | c | c | c | c |}
+  \hline
+  T/p & 4	 & 8	& 16	& 32	& 64 & 128  \\
+  \hline
+  1 & 1	& 2,03 & 3,87 & 7,94 & 14,76 & 31,19  \\
+  2 & 1,04 & 2,05 & 3,97 & 8,50 & 16,43 & 27,90 \\	
+  4 & 1,01 &2,03	& 4,21 &	8,04 &	16,37 &	35,26	\\	
+  8 & 1,02  &2,02 &	4,02 &	8,62 &	18,32 &	32,26 \\
+  \hline
+\end{tabular}
+\newline\newline As we can see the speedup tends to 
+increase when the number of cores increase, however when
+we use more threads it happens that the
+speedup start to decrease at a certain point for some
+core configuration. As we can see from the plots it 
+seems there are threshold at some specific points, depending
+on the number of threads used; notice how the inclinations
+of the lines in the plot tends to be less and less evident.
+
 \begin{figure}[H]
-  \includegraphics[scale=0.2]{reduce-example.png}
+  \includegraphics[scale=0.3]{img/speedup.jpg}
   \centering
-  \caption{Illustration of the reduce process performed by the computation\_accumulate function}
+  \caption{speedup graphic}
+\end{figure}
+
+\noindent 
+Efficiency tends to present an unpredictable behaviour,
+in fact the coefficients grows for some particular setups,
+for others instead numbers decrease. If we take a look on
+the plot below it shows that there is a high variance in the
+datas, with the lines that tends to be more stretched when the
+number of threads gets higher
+\newline
+\newline
+\begin{tabular}{| c | c | c | c | c | c | c |}
+  \hline
+  T/p & 4	 & 8	& 16	& 32	& 64 & 128  \\
+  \hline
+  1 & 1	& 1,02 & 0,97 & 0,99 & 0,92 & 0,97  \\
+  2 & 1,04 & 1,03 & 0,99 & 1,06 & 1,03 & 0,87 \\	
+  4 & 1,01	&1,01&	1,05&	1&	1,02&	1,1	\\	
+  8 &1,02&	1,01&	1,01&	1,08&	1,15&	1,01 \\
+  \hline
+\end{tabular}
+
+\begin{figure}[H]
+  \includegraphics[scale=0.3]{img/efficiency.jpg}
+  \centering
+  \caption{efficiency graphic}
 \end{figure}
 
 \end{multicols}
