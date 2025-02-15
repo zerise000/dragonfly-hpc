@@ -58,14 +58,23 @@
 
 \maketitle
 
-\begin{multicols}{2}[\fontsize{9}{9}\section*{Abstract} \textbf{Dragonfly algorithm is a new kind of approach used to solve optimization problems through the emulation of dragonflies movements, but it lacks scalability. In this paper the authors try to set up an approach based on parallelization thanks to the use of API for high performance computing like MPI and OpenMP, then there will be a comparison of execution times between presented implementation and the classic approach based on serial programming, in order to see if parallelization could lead to a performance improvement and possible future extensions.}\newline]
+\begin{multicols}{2}[
+  \fontsize{9}{9}
+  \section*{Abstract}
+  \textbf{Dragonfly algorithm is a new kind of approach used to solve optimization problems through the emulation of dragonflies movements, but it lacks scalability. In this paper the authors try to set up an approach based on parallelization thanks to the use of API for high performance computing like MPI and OpenMP, then there will be a comparison of execution times between presented implementation and the classic approach based on serial programming, in order to see if parallelization could lead to a performance improvement and possible future extensions.}\newline]
 
 \section{Introduction}
 
-Recent years have seen the raise and evolution of swarm intelligent algorithms, based on meta-heuristic approach where single individuals of a complex population follow an exploration-exploitation methodology to find the best solution in their local search space; each member of the group work independently from the others, leading to a subdivision of the labour which decrease the overall amount of execution time, working as decentralized and parallel units; but also, due to the fact that they mimic the behaviour of biological life forms, it is possible then that they could generate random patterns through the interaction with each other.  The dragonfly algorithm has been proposed for the first time in 2016, and its purpose is to simulate the behaviour of a dragonfly population according to the principles of swarm intelligent algorihms seen previously. It has gained more and more popularity: it is in estimated that during 2019 more than 300 scientific papers cited the algorithm \cite{DASurvey}, due to the fact that it has demonstrated some characteristics similar to other algoritms of the same kind, however in contrast with other swarm intelligent algorithms however it present less probability to be trapped into a local optima \cite{DAReview}. This paper aims to define a new approach based on popular parallel APIs, and also trying to understand if parallelization could lead to a significant speed up in performances that can be considered by future researches on this algorithm 
+Recent years have seen the raise and evolution of swarm intelligent algorithms, based on meta-heuristic approach where single individuals of a complex population follow an exploration-exploitation methodology to find the best solution in their local search space;
+each member of the group work independently from the others, leading to a subdivision of the labour which decrease the overall amount of execution time, working as decentralized and parallel units; but also, due to the fact that they mimic the behaviour of biological life forms, it is possible then that they could generate random patterns through the interaction with each other. 
+The dragonfly algorithm has been proposed for the first time in 2016, and its purpose is to simulate the behaviour of a dragonfly population according to the principles of swarm intelligent algorihms seen previously.
+It has gained more and more popularity: it is in estimated that during 2019 more than 300 scientific papers cited the algorithm \cite{DASurvey}, due to the fact that it has demonstrated some characteristics similar to other algoritms of the same kind, however in contrast with other swarm intelligent algorithms however it present less probability to be trapped into a local optima \cite{DAReview}.
+This paper aims to define a new approach based on popular parallel APIs, and also trying to understand if parallelization could lead to a significant speed up in performances that can be considered by future researches on this algorithm 
 
 \subsection*{How the algorithm works}
-The execution begins with the initialization of some arrays which are the position $P$ of all dragonfiles and the `step` vector $\Delta P$ representing the velocities of each single individual,the position of source foods $F$ and the position of enemies $E$; then the algorithm executes an iteration loop where, for each dragonfly, we calculate some coefficient that will be used to update the internal state of the program. This procedure is simulated through the observation of repetitive patterns observed in the behaviour of dragonflies, which are:
+The execution begins with the initialization of some arrays which are the position $P$ of all dragonfiles and the `step` vector $\Delta P$ representing the velocities of each single individual,the position of source foods $F$ and the position of enemies $E$;
+then the algorithm executes an iteration loop where, for each dragonfly, we calculate some coefficient that will be used to update the internal state of the program.
+This procedure is simulated through the observation of repetitive patterns observed in the behaviour of dragonflies, which are:
 
 
 
@@ -76,10 +85,13 @@ The execution begins with the initialization of some arrays which are the positi
     
   \item Cohesion towards the center of the group, given by $C_i = \frac{\sum^M_{j=1}P_j}{M} - P$ 
   \item Attraction to a common source food, expressed by the formula $ F_i = F^+ - P$, where $F^+$ is the position of the current prey and $P$ is the position of the current dragonfly
-  \item Distraction of enemies, represented by the equation $ E_i = E^- - P$ where $E^-$ is the position of the current enemy 
+  \item Distraction of enemies, represented by the equation $ E_i = E^- + P$ where $E^-$ is the position of the current enemy 
 \end{itemize}
 
 \noindent Once all the parameters have been calculated we can now update the current step vector of each dragonfly using the following equation: $$\Delta P^{t+1}_{i} = (sS_i + aA_i + fF_i + cC_i) + \omega\Delta P^t_i$$ where $s,a,f,c$ are respectevly the separation weight, the alignment weight, the attraction weight, the cohesion weight and $\omega$ is the inertia weight, all of them are randomly chosen in the interval $[0,1]$. When all step vectors have been updated we can now set the new position of the dragonflies using this equation, which takes the new step vector as an input: $$P^{t+1}_{i} = P_i^t + \Delta P_{i}^{t+1}$$. However if there is a dragonfly which does not have any neighbour then we assume that the overall population moves in a random way: the most common method to do that is to use a random walk function. The previous formula then must be modified into this one here: $$P^{t+1}_i = P_i^t + Levy(d)$$ where $d$ is the dimension of the position vector, and $Levy(d)$ is the Levy flight function, which is calculated in this way: $$Levy(d) = 0.01\times\frac{r_1 \times \sigma}{|r_2|^{\frac{1}{\beta}}}$$ where $r1$ and $r2$ are two random numbers uniformally distributed in the interval $[0,1]$, and $\sigma$ is a vector calculated using the following formula: $$\sigma = \frac{sin(\frac{\beta\pi}{2})\times\Gamma(1+\beta)}{\Gamma(\frac{\beta+1}{2})\times \beta \times 2^{(\beta-1)/2}}$$ where $\Gamma(x)$ is the gamma function \cite{WikiGamma}, and $\beta$ is a constant.Another valid approach is to apply, instead of Levy flight, the brownian motion model, used especially in gas and particle analysis: this seems to return better performances \cite{BDragonfly}. 
+
+
+
 
 \section{first approach}
 
@@ -148,7 +160,11 @@ have a base for further developments. An example of the implementation can be ob
   }
 \end{lstlisting}
 
-\noindent After the initialization of velocities and positions of agents,
+
+
+\noindent  As you can see this implementation use heavily the sum\_assign and similar functions, which we define to ease the computation and keep them similar to the mathematical notation.
+
+After the initialization of velocities and positions of agents,
 which will be represented by two separated matricies with the same dimension equal to the number of members of our
 population times the dimension of our problem, the algorithm starts to execute a for loop with a fixed amount of iteration stored in the variable $d\rightarrow N$, 
 and will repeatetly compute the following steps:
@@ -157,9 +173,31 @@ and will repeatetly compute the following steps:
   \item compute separation, alignment, cohesion, food attraction and enemy distraction vectors,
   stored into arrays placed in the struct Dragonfly
   \item calculate product between weigths and arrays
-  \item update speed and position the dragonfly considering also levy flight
+  \item update speed and position the dragonfly considering also brownian motion
 \end{itemize}
+\section{Critical analysis of the coefficients}
+From this implementation we discovered some critical points that should be improved:
+\begin{itemize}
+  \item Chunks: In the paper and in the algorithm often uses the therm neighbours without giving a precise definition.
+  Assuming a general distance metric (eg Euclidean Distance), could be an option, but later in the paper it describes how the alghorithm runs in linear time with respect to the number of dragonflies and the iteration count.
+  This would be false in case of euclidean distance, because in order to define for each butterfly the neighbours, we should calculate the distance between each pair of dragonflies, which would lead to a time complexity of $O(N^2)$.
+  Maybe using some complex geospatial algorithms it could be possible to archive that, but we doubt this was the original intention of the authors.
+  Later in the paper also another crithical problem in respect to other algorithm was the premature convergence. So we decided to divide the population in chunks, and progressively merge chunks until we will remain with only one.
+  So in this way we addressed both problems.
+  \item Stability: In order to be a solid algorithm it must be garanteed that does not exist some values that would make the solution diverge.
+  As a first approach we introduced a max_speed parameter that would change over time and would assure stability. But given that in the original paper it was not described we omitted from later implementations.
+  This lead to instabilities from the enemy coefficient (if bigger than 0.5), but mainly from the separation coefficient.
+  This is a problem, because we could be see the coefficient as n times the distance between the dragonfly and the average position of the population. For example if the distance is 0.001, but there are 1000 dragonflies in the neighbourhood, then the coefficient would be 1, at the very next iteration the dragonflies would have a distance of 1 from the center and so on, causing an exponential growth.
+  In order to fix this we modify the separation formula as: $S_i = - \frac{\sum^M_{j=1}{P - P_j}}{N}$.
+  \item  The enemy coefficient does not represent what the author describes. The sum of vectors does not necessarily point outwards in respect to the enemy (eg with aligned pos vectors). 
+  We assumed a typo, but even the difference of the vectors would not be enough, because if the enemy is too close to the dragonfly, the difference would get smaller and not bigger.
+  A possible solution would be to normalize the difference vector with the inverse of the vector length, but the formulation would have been to different from the original one. So we decided to keep the original formulation and see if it actualy would do something.
+  
+  
 \subsection*{chunks}
+
+
+
 We can improve this approach introducing groupments of dragonflies into chunks, 
 allowing us to calculate local minima of different areas and compare them in order
 to get as close as possible to the global minima. which will be considered
@@ -170,6 +208,10 @@ global status of by sending messages to all other dragonfly chunks.
   \includegraphics[scale=0.3]{chunks.png}
   \caption{illustration of communication between chunks}
 \end{figure}
+
+
+A
+
 
 \section{parallelization with MPI}
 
