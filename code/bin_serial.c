@@ -15,10 +15,10 @@ int main(int argc, char *argv[]) {
   // set parameters
   Parameters p = parameter_parse(argc, argv);
   unsigned int seed = time(NULL);
-  float *shifted_tmp = malloc(sizeof(float) * p.dim);
-  float *shifted_rotation = malloc(sizeof(float) * p.dim * p.dim);
-  float *shifted_shift = init_array(p.dim, 100.0, &seed);
-  init_matrix(shifted_rotation, 100.0, p.dim, &seed);
+  float *shifted_tmp = malloc(sizeof(float) * p.problem_dimensions);
+  float *shifted_rotation = malloc(sizeof(float) * p.problem_dimensions * p.problem_dimensions);
+  float *shifted_shift = init_array(p.problem_dimensions, 100.0, &seed);
+  init_matrix(shifted_rotation, 100.0, p.problem_dimensions, &seed);
 
   init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift,
                        rastrigin_fitness);
@@ -52,10 +52,10 @@ int main(int argc, char *argv[]) {
 
   float *res = dragonfly_compute(p, w, fitness, 1, 0, 100.0, seed);
   unsigned int s =0;
-  float fit = fitness(res, &s, p.dim);
+  float fit = fitness(res, &s, p.problem_dimensions);
 
   printf("found fitness=%f\n", fit);
-  for (unsigned int i = 0; i < p.dim; i++) {
+  for (unsigned int i = 0; i < p.problem_dimensions; i++) {
     printf("%f\n", res[i]);
   }
   free(res);

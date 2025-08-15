@@ -3,22 +3,33 @@
 #define MESSAGE_SIZE 16
 #define MAX_CHUNKS 4048
 
+
+// struct used to store the progression of the dragonfly weights s, a, c, f, e, w, l
 typedef struct {
   float sl[2], al[2], cl[2], fl[2], el[2], wl[2], ll[2];
   float st, at, ct, ft, et, wt, lt;
   float s, a, c, f, e, w, l;
 } Weights;
 
+
+// Newtype for Fitness functions, they should take the input vector, one int as random number generator seed, and the dimension count
 typedef float (*Fitness)(float *, unsigned int*, unsigned int);
 
+// function used to compute the step for the linear progression of the weights.
 void weights_compute_steps(Weights *w, unsigned int steps);
+
+// compute one step forward for the weights
 void weights_step(Weights *w);
+
 
 typedef struct {
   // dimensions of the problem
   unsigned int dim;
+  // size of the search space
   float space_size;
+  // fitness function
   Fitness fitness;
+  //adaptive weights
   Weights w;
   
   // for how many dragonflies? problem definition
@@ -30,9 +41,11 @@ typedef struct {
 
   // tmp buffers (in order to not allocate and deallocate memory)
   float *S, *A, *C, *F, *E, *W, *delta_pos, *levy;
-
+  
+  //random seed
   unsigned int seed;
 } Dragonfly;
+
 
 Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
                         unsigned int iterations, float space_size,
@@ -63,7 +76,7 @@ typedef struct{
 
 
 typedef struct {
-  unsigned int n, chunks, iterations, dim, threads_per_process;
+  unsigned int population_size, n_chunks, iterations, problem_dimensions, threads_per_process;
 } Parameters;
 
 Parameters parameter_parse(int argc, char *argv[]);

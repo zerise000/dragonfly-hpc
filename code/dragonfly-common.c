@@ -14,30 +14,34 @@
 Parameters parameter_parse(int argc, char* argv[]){
   Parameters p;
   if(argc!=6){
-    fprintf(stderr, "invalid parameter count: expected n, chunks, iterations, dimensions");
+    fprintf(stderr, "invalid parameter count: expected population_size, starting_chunk_count, iterations, problem_dimensions");
     exit(-1);
   }
-  p.n=atoi(argv[1]);
-  p.chunks=atoi(argv[2]);
+  p.population_size=atoi(argv[1]);
+  p.n_chunks=atoi(argv[2]);
   p.iterations=atoi(argv[3]);
-  p.dim=atoi(argv[4]);
+  p.problem_dimensions=atoi(argv[4]);
 
   p.threads_per_process=atoi(argv[5]);
 
-  if(p.n==0 || p.chunks==0 || p.iterations==0 || p.dim==0 || p.threads_per_process==0){
+  if(p.population_size==0 || p.n_chunks==0 || p.iterations==0 || p.problem_dimensions==0 || p.threads_per_process==0){
     fprintf(stderr, "invalid parameter they must be all bigger than 1 (and integers)");
     exit(-1);
   }
-  if(p.chunks> p.n){
+  if(p.n_chunks> p.population_size){
     fprintf(stderr, "chunk must be smaller than n");
     exit(-1);
   }
   return p;
 };
 
+// function used to compute the step for the linear progression of the weights.
 void weights_compute_steps(Weights *w, unsigned int steps) {
+  // compute step increase
   w->st = (w->sl[1] - w->sl[0]) / (float)steps;
+  //set initial value
   w->s = w->sl[0];
+  //repeat for the othe values
   w->at = (w->al[1] - w->al[0]) / (float)steps;
   w->a = w->al[0];
 
@@ -56,6 +60,7 @@ void weights_compute_steps(Weights *w, unsigned int steps) {
   w->l = w->ll[0];
 }
 
+// compute one step forward for the weights
 void weights_step(Weights *w) {
   w->s += w->st;
   w->a += w->at;
@@ -66,6 +71,8 @@ void weights_step(Weights *w) {
   w->l += w->lt;
 }
 
+
+// initialize a new dragonfly instance, it does not alloc the memory.
 Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
                         unsigned int iterations, float space_size,
                         Weights weights,
@@ -86,6 +93,7 @@ Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
   return d;
 }
 
+// allocates the buffers for the dragonfly algorithm
 void dragonfly_alloc(Dragonfly *d) {
   // allocate, and init random positions
   unsigned int dim = d->dim;
@@ -105,6 +113,7 @@ void dragonfly_alloc(Dragonfly *d) {
   d->delta_pos = init_array(dim, 0.0, &d->seed);
 }
 
+// free al buffer for the dragonfly algorithm
 void dragonfly_free(Dragonfly d) {
   free(d.positions);
   free(d.speeds);
@@ -117,6 +126,7 @@ void dragonfly_free(Dragonfly d) {
   free(d.delta_pos);
   free(d.levy);
 }
+
 
 void computation_status_merge(ComputationStatus *out, ComputationStatus *in, unsigned int dim){
   sum_assign(out->cumulated_pos, in->cumulated_pos, dim);
@@ -201,15 +211,15 @@ void build_mpi_type_message(MPI_Datatype *out, MPI_Datatype *computation_status)
 
 // take timing not including IO
 float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int threads, unsigned int rank_id, float space_size, unsigned int srand) {
-  if(MESSAGE_SIZE<p.dim){
-    fprintf(stderr, "impossible to compute with %d dimensions, recompile with a bigger MESSAGE_SIZE\n", p.dim);
+  if(MESSAGE_SIZE<p.problem_dimensions){
+    fprintf(stderr, "impossible to compute with %d dimensions, recompile with a bigger MESSAGE_SIZE\n", p.problem_dimensions);
     exit(-1);
   }
-  if(p.chunks>MAX_CHUNKS){
-    fprintf(stderr, "impossible to compute with %d chunks, recompile with a bigger MAX_CHUNKS\n", p.chunks);
+  if(p.n_chunks>MAX_CHUNKS){
+    fprintf(stderr, "impossible to compute with %d chunks, recompile with a bigger MAX_CHUNKS\n", p.n_chunks);
     exit(-1);
   }
-  if(p.chunks==0){
+  if(p.n_chunks==0){
     fprintf(stderr, "impossible to compute with 0 chunks\n");
     exit(-1);
   }
@@ -224,8 +234,8 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
 
   }
   // compute start and end rank
-  unsigned int start_chunk = rank_id*(p.chunks/threads) + min(rank_id, p.chunks%threads);
-  unsigned int current_chunks = p.chunks/threads + (rank_id<(p.chunks%threads));
+  unsigned int start_chunk = rank_id*(p.n_chunks/threads) + min(rank_id, p.n_chunks%threads);
+  unsigned int current_chunks = p.n_chunks/threads + (rank_id<(p.n_chunks%threads));
   unsigned int end_chunk = start_chunk + current_chunks;
   
 
@@ -239,20 +249,20 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
 
   // allocate problem
   for (unsigned int i = 0; i < current_chunks; i++) {
-    unsigned int cur_n = p.n/p.chunks + (i<(p.n%p.chunks));
-    d[i] = dragonfly_new(p.dim, cur_n, p.iterations, space_size, w,
+    unsigned int cur_n = p.population_size/p.n_chunks + (i<(p.population_size%p.n_chunks));
+    d[i] = dragonfly_new(p.problem_dimensions, cur_n, p.iterations, space_size, w,
                          fitness, i + start_chunk+ srand);
     dragonfly_alloc(&d[i]);
   }
 
 
-  float *best = malloc(sizeof(float) * p.dim);
-  memcpy(best, d->positions, p.dim * sizeof(float));
-  float best_fitness = d->fitness(best, &d->seed, p.dim);
+  float *best = malloc(sizeof(float) * p.problem_dimensions);
+  memcpy(best, d->positions, p.problem_dimensions * sizeof(float));
+  float best_fitness = d->fitness(best, &d->seed, p.problem_dimensions);
 
   unsigned int joint_chunks = 1;
   int log_chunks = 0;
-  int tmp_chunks = p.chunks;
+  int tmp_chunks = p.n_chunks;
   while (tmp_chunks > 1) {
     tmp_chunks /= 2;
     log_chunks++;
@@ -281,12 +291,12 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
     //prepare and compute
     for(unsigned int j=start_chunk-start_chunk%joint_chunks; j<end_chunk; j+=joint_chunks){
       for(unsigned int k=1; k<joint_chunks; k++){
-        if(j+k<p.chunks){
-          computation_status_merge(&message.status[j], &message.status[j+k], p.dim);
+        if(j+k<p.n_chunks){
+          computation_status_merge(&message.status[j], &message.status[j+k], p.problem_dimensions);
         }
       }
       scalar_prod_assign(message.status[j].cumulated_speeds,
-                         1.0 / (float)message.status[j].n, p.dim);
+                         1.0 / (float)message.status[j].n, p.problem_dimensions);
       for(unsigned int k=0; k<joint_chunks; k++){
         if(start_chunk<=j+k && j+k<end_chunk){
           dragonfly_compute_step(&d[j+k-start_chunk], message.status[j].cumulated_speeds,
@@ -305,7 +315,7 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
   message.end_chunk=end_chunk;
 
   if(message.status[start_chunk].next_food_fitness< best_fitness) {
-    memcpy(message.status[start_chunk].next_food, best, p.dim*sizeof(float));
+    memcpy(message.status[start_chunk].next_food, best, p.problem_dimensions*sizeof(float));
     message.status[start_chunk].next_food_fitness = best_fitness;
   }
 
@@ -314,11 +324,11 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
     message_broadcast(&message, rank_id, threads, &message_type);
   #endif
 
-  for(unsigned int i=0; i<p.chunks; i++){
-    computation_status_merge(&message.status[0], &message.status[i], p.dim);
+  for(unsigned int i=0; i<p.n_chunks; i++){
+    computation_status_merge(&message.status[0], &message.status[i], p.problem_dimensions);
   }
 
-  memcpy(best, message.status[start_chunk].next_food, p.dim*sizeof(float));
+  memcpy(best, message.status[start_chunk].next_food, p.problem_dimensions*sizeof(float));
   for(unsigned int i=0; i<current_chunks; i++){
     dragonfly_free(d[i]);
   }

@@ -43,23 +43,23 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  Parameters p = {.n = 128, .dim = 10, .chunks = 64, .iterations = 200};
+  Parameters p = {.population_size = 128, .problem_dimensions = 10, .n_chunks = 64, .iterations = 200};
 
   Fitness fitness = shifted_fitness;
   int N = 30;
   float *array = malloc(sizeof(float)*N);
   for (int i = 0; i < N; i++) {
 
-    float *shifted_tmp = malloc(sizeof(float) * p.dim);
-    float *shifted_rotation = malloc(sizeof(float) * p.dim * p.dim);
-    float *shifted_shift = init_array(p.dim, 7.0, seed);
-    init_matrix(shifted_rotation, 10.0, p.dim, seed);
+    float *shifted_tmp = malloc(sizeof(float) * p.problem_dimensions);
+    float *shifted_rotation = malloc(sizeof(float) * p.problem_dimensions * p.problem_dimensions);
+    float *shifted_shift = init_array(p.problem_dimensions, 7.0, seed);
+    init_matrix(shifted_rotation, 10.0, p.problem_dimensions, seed);
 
     init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift,
                          rastrigin_fitness);
 
     float *res = dragonfly_compute(p, w, fitness, 1, 0, 100.0, *seed);
-    array[i] = fitness(res, seed, p.dim);
+    array[i] = fitness(res, seed, p.problem_dimensions);
     free(shifted_tmp);
     free(shifted_rotation);
     free(shifted_shift);

@@ -42,11 +42,11 @@ int main(int argc, char *argv[]) {
 
   MPI_Barrier(MPI_COMM_WORLD);
   unsigned int s =0;
-  float fit = fitness(res, &s, p.dim);
+  float fit = fitness(res, &s, p.problem_dimensions);
 
   if (rank == 0) {
     printf("found fitness=%f\n", fit);
-    for (unsigned int i = 0; i < p.dim; i++) {
+    for (unsigned int i = 0; i < p.problem_dimensions; i++) {
       printf("%f\n", res[i]);
     }
     double duration = (double)(clock() - start_time) / CLOCKS_PER_SEC;
