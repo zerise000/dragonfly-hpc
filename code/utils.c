@@ -22,6 +22,8 @@ void* my_malloc(size_t size, const char *file, int line, const char *func)
 }*/
 #include "utils.h"
 
+
+
 float *init_array(unsigned int dimensions, float range_max,
                   unsigned int *seed) {
   float *arr = malloc(dimensions * sizeof(float));
@@ -211,18 +213,18 @@ void inner_dragonfly_step(Dragonfly *d, float *average_speed,
     }
   }
 }
-
+/*
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float *food, float *enemy,
                             unsigned int N, unsigned int NR_THREADS) {
   unsigned int base_random = rand_r(&d->seed);
   //printf("base_random=%d\n", base_random);
   // if more than 1 thread
-  unsigned int rest = d->N % NR_THREADS;
-  unsigned int ratio = d->N / NR_THREADS;
+  unsigned int rest = d->local_n % NR_THREADS;
+  unsigned int ratio = d->local_n / NR_THREADS;
   if (NR_THREADS == 1) {
     inner_dragonfly_step(d, average_speed, cumulated_pos, food, enemy, N, 0,
-                         d->N, base_random);
+                         d->local_n, base_random);
   } else {
     
 #ifdef USE_OPENMP
@@ -250,14 +252,14 @@ void dragonfly_compute_step(Dragonfly *d, float *average_speed,
 
     if (rest != 0) {
       unsigned int r_base = ratio * NR_THREADS;
-      unsigned int r_end = d->N;
+      unsigned int r_end = d->local_n;
 
       inner_dragonfly_step(d, average_speed, cumulated_pos, food, enemy, N,
                            r_base, r_end, base_random);
     }
   }
   weights_step(&d->w);
-}
+}*/
 /*
 void computation_accumulate_multithread(ComputationStatus *message,
                                         Dragonfly *d, float *best,
@@ -432,7 +434,7 @@ void update_status(ComputationStatus* status,Dragonfly* d,float* best,float* bes
 		status->next_enemy_fitness = d->fitness(status->next_enemy,&d->seed,dim);
 		*best_fitness = d->fitness(best,&d->seed,dim);
 }
-
+/*
 void computation_accumulate(ComputationStatus *status, Dragonfly *d,
                             float *best, float *best_fitness,
                             unsigned int NUM_THREADS) {
@@ -444,13 +446,13 @@ void computation_accumulate(ComputationStatus *status, Dragonfly *d,
   memcpy(status->next_food, d->positions, sizeof(float) * dim);
   status->next_enemy_fitness = d->fitness(status->next_enemy, &d->seed, dim);
   status->next_food_fitness = status->next_enemy_fitness;
-  status->n = d->N;
+  status->n = d->local_n;
 
 	unsigned int pos_indexes[3] = {0,0,0};
 
 #ifdef USE_OPENMP
-	unsigned int rest = d->N % NUM_THREADS;
-  unsigned int ratio = d->N / NUM_THREADS;
+	unsigned int rest = d-> % NUM_THREADS;
+  unsigned int ratio = d->starting_chunk_count / NUM_THREADS;
 	unsigned int g_seed = rand_r(&d->seed);
 
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -528,12 +530,12 @@ void computation_accumulate(ComputationStatus *status, Dragonfly *d,
   
 	inner_computation_accumulate(d,status->cumulated_pos,status->cumulated_speeds,&status->next_food_fitness,
 																	&status->next_enemy_fitness,best_fitness,
-																	pos_indexes,0,d->N,dim,d->seed);
+																	pos_indexes,0,d->local_n,dim,d->seed);
 
 	update_status(status,d,best,best_fitness,pos_indexes,dim);
 
 #endif
-}
+}*/
 
 /*
 void computation_accumulate(ComputationStatus *status, Dragonfly *d,

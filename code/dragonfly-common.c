@@ -3,32 +3,38 @@
 #include "string.h"
 #include "utils.h"
 
+#include <assert.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stddef.h>
-#ifdef USE_MPI
+#include <stdio.h>
+// #ifdef USE_MPI
 #include <mpi.h>
-#endif
+#include <unistd.h>
+// #endif
 
 // n, chunks, iterations, dim
-Parameters parameter_parse(int argc, char* argv[]){
+Parameters parameter_parse(int argc, char *argv[]) {
   Parameters p;
-  if(argc!=6){
-    fprintf(stderr, "invalid parameter count: expected population_size, starting_chunk_count, iterations, problem_dimensions");
+  if (argc != 6) {
+    fprintf(stderr, "invalid parameter count: expected population_size, "
+                    "starting_chunk_count, iterations, problem_dimensions, threads_per_process");
     exit(-1);
   }
-  p.population_size=atoi(argv[1]);
-  p.n_chunks=atoi(argv[2]);
-  p.iterations=atoi(argv[3]);
-  p.problem_dimensions=atoi(argv[4]);
+  p.population_size = atoi(argv[1]);
+  p.starting_chunk_count = atoi(argv[2]);
+  p.iterations = atoi(argv[3]);
+  p.problem_dimensions = atoi(argv[4]);
 
-  p.threads_per_process=atoi(argv[5]);
+  p.threads_per_process = atoi(argv[5]);
 
-  if(p.population_size==0 || p.n_chunks==0 || p.iterations==0 || p.problem_dimensions==0 || p.threads_per_process==0){
-    fprintf(stderr, "invalid parameter they must be all bigger than 1 (and integers)");
+  if (p.population_size == 0 || p.starting_chunk_count == 0 ||
+      p.iterations == 0 || p.problem_dimensions == 0 ||
+      p.threads_per_process == 0) {
+    fprintf(stderr,
+            "invalid parameter they must be all bigger than 1 (and integers)");
     exit(-1);
   }
-  if(p.n_chunks> p.population_size){
+  if (p.starting_chunk_count > p.population_size) {
     fprintf(stderr, "chunk must be smaller than n");
     exit(-1);
   }
@@ -39,9 +45,9 @@ Parameters parameter_parse(int argc, char* argv[]){
 void weights_compute_steps(Weights *w, unsigned int steps) {
   // compute step increase
   w->st = (w->sl[1] - w->sl[0]) / (float)steps;
-  //set initial value
+  // set initial value
   w->s = w->sl[0];
-  //repeat for the othe values
+  // repeat for the othe values
   w->at = (w->al[1] - w->al[0]) / (float)steps;
   w->a = w->al[0];
 
@@ -71,20 +77,20 @@ void weights_step(Weights *w) {
   w->l += w->lt;
 }
 
-
 // initialize a new dragonfly instance, it does not alloc the memory.
-Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
-                        unsigned int iterations, float space_size,
-                        Weights weights,
-                        Fitness fitness, unsigned int random_seed) {
+Dragonfly dragonfly_new(unsigned int dimensions, unsigned int start,
+                        unsigned int end, unsigned int iterations,
+                        float space_size, Weights weights, Fitness fitness,
+                        unsigned int random_seed) {
   // computes weigths progression
 
   weights_compute_steps(&weights, iterations);
 
   Dragonfly d = {
-      .N = N,
+
+      .start = start,
+      .end = end,
       .dim = dimensions,
-      
       .space_size = space_size,
       .w = weights,
       .fitness = fitness,
@@ -97,11 +103,10 @@ Dragonfly dragonfly_new(unsigned int dimensions, unsigned int N,
 void dragonfly_alloc(Dragonfly *d) {
   // allocate, and init random positions
   unsigned int dim = d->dim;
-  unsigned int N = d->N;
+  unsigned int N = d->end - d->start;
   unsigned int space_size = d->space_size;
   d->positions = init_array(N * dim, space_size, &d->seed);
   d->speeds = init_array(N * dim, space_size / 20.0, &d->seed);
-
 
   d->S = init_array(dim, 0.0, &d->seed);
   d->A = init_array(dim, 0.0, &d->seed);
@@ -127,31 +132,33 @@ void dragonfly_free(Dragonfly d) {
   free(d.levy);
 }
 
-
-void computation_status_merge(ComputationStatus *out, ComputationStatus *in, unsigned int dim){
+void computation_status_merge(ComputationStatus *out, ComputationStatus *in,
+                              unsigned int dim) {
   sum_assign(out->cumulated_pos, in->cumulated_pos, dim);
   sum_assign(out->cumulated_speeds, in->cumulated_speeds, dim);
-  if(out->next_food_fitness<in->next_food_fitness){
-    memcpy(out->next_food, in->next_food, sizeof(float)*dim);
-    out->next_food_fitness=in->next_food_fitness;
+  if (out->next_food_fitness < in->next_food_fitness) {
+    memcpy(out->next_food, in->next_food, sizeof(float) * dim);
+    out->next_food_fitness = in->next_food_fitness;
   }
-  if(out->next_enemy_fitness>in->next_enemy_fitness){
-    memcpy(out->next_enemy, in->next_enemy, sizeof(float)*dim);
-    out->next_enemy_fitness=in->next_enemy_fitness;
+  if (out->next_enemy_fitness > in->next_enemy_fitness) {
+    memcpy(out->next_enemy, in->next_enemy, sizeof(float) * dim);
+    out->next_enemy_fitness = in->next_enemy_fitness;
   }
   out->n += in->n;
 }
-#ifdef USE_MPI
 
-void raw_send_recv(Message *send, unsigned int destination, Message *recv_buffer,
-                  unsigned int source, MPI_Datatype *data_type) {
-  MPI_Sendrecv(send, 1, *data_type, destination, 0, recv_buffer, 1, *data_type,
-               source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+// #ifdef USE_MPI
+/*
+void raw_send_recv(Message *send, unsigned int destination, Message
+*recv_buffer, unsigned int source, MPI_Datatype *data_type) { MPI_Sendrecv(send,
+1, *data_type, destination, 0, recv_buffer, 1, *data_type, source, 0,
+MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
 
-void message_broadcast(Message *message, unsigned int index, int n, MPI_Datatype *data_type){
-  
+void message_broadcast(Message *message, unsigned int index, int n, MPI_Datatype
+*data_type){
+
   Message recv_buffer;
   for(unsigned int steps=0; (1<<steps)<n; steps++){
     unsigned int index_other;
@@ -161,17 +168,17 @@ void message_broadcast(Message *message, unsigned int index, int n, MPI_Datatype
       index_other = index-(1<<steps);
     }
     raw_send_recv(message, index_other, &recv_buffer, index_other, data_type);
-    memcpy(&message->status[recv_buffer.start_chunk], &recv_buffer.status[recv_buffer.start_chunk], sizeof(ComputationStatus)*(recv_buffer.end_chunk-recv_buffer.start_chunk));
+    memcpy(&message->status[recv_buffer.start_chunk],
+&recv_buffer.status[recv_buffer.start_chunk],
+sizeof(ComputationStatus)*(recv_buffer.end_chunk-recv_buffer.start_chunk));
     message->start_chunk = min(message->start_chunk, recv_buffer.start_chunk);
     message->end_chunk = max(message->end_chunk, recv_buffer.end_chunk);
   }
-}
-
-
-
+}*/
 
 void Build_mpi_type_computation_status(MPI_Datatype *data) {
-  int blocklengths[7] = {MESSAGE_SIZE, MESSAGE_SIZE, MESSAGE_SIZE, MESSAGE_SIZE, 1, 1, 1};
+  int blocklengths[7] = {
+      MESSAGE_SIZE, MESSAGE_SIZE, MESSAGE_SIZE, MESSAGE_SIZE, 1, 1, 1};
   MPI_Datatype types[7] = {MPI_FLOAT, MPI_FLOAT, MPI_FLOAT,   MPI_FLOAT,
                            MPI_FLOAT, MPI_FLOAT, MPI_UNSIGNED};
   MPI_Aint displacements[7];
@@ -186,38 +193,254 @@ void Build_mpi_type_computation_status(MPI_Datatype *data) {
   MPI_Type_commit(data);
 }
 
+// #endif
 
+typedef struct {
+  unsigned int start;
+  unsigned int end;
+  bool to_shift_left;
+  bool to_shift_right;
+  bool complete;
 
-void build_mpi_type_message(MPI_Datatype *out, MPI_Datatype *computation_status){
+  ComputationStatus comp;
+  // TODO add message
+} LogicalChunk;
 
-  //typedef struct{
-  //  unsigned int start_chunk, end_chunk;
-  //  ComputationStatus status[MAX_CHUNKS];
-  //} Message;
-
-  int blocklengths[3] = {1, 1, MAX_CHUNKS};
-  MPI_Datatype types[3] = {MPI_UNSIGNED, MPI_UNSIGNED, *computation_status};
-  MPI_Aint displacements[3];
-  displacements[0] = offsetof(Message, start_chunk);
-  displacements[1] = offsetof(Message, end_chunk);
-  displacements[2] = offsetof(Message, status);
-  MPI_Type_create_struct(3, blocklengths, displacements, types, out);
-  MPI_Type_commit(out);
+unsigned int assing_logical_chunks(unsigned int phisical_chunk_start,
+                                   unsigned int phisical_chunk_end,
+                                   unsigned int phisical_chunk_size,
+                                   unsigned int population_size,
+                                   unsigned int logical_chunk_size,
+                                   LogicalChunk *buffer) {
+  unsigned int cur_start =
+      (phisical_chunk_start / logical_chunk_size) * logical_chunk_size;
+  unsigned int index = 0;
+  while (cur_start < phisical_chunk_end) {
+    unsigned int cur_end =
+        min(cur_start + logical_chunk_size, population_size);
+    bool starts_in_previous = (cur_start < phisical_chunk_start);
+    bool ends_in_next = false;
+    if (((cur_end+phisical_chunk_size-1)/phisical_chunk_size-1)*phisical_chunk_size == phisical_chunk_end) {
+      ends_in_next = true;
+    }
+    printf("chunk: %d-%d %d-%d %d %d %d\n", phisical_chunk_start, phisical_chunk_end, cur_start, cur_end, starts_in_previous, ends_in_next, index);
+    LogicalChunk cur = {
+        .start = cur_start,
+        .end = cur_end,
+        .to_shift_left = starts_in_previous && !ends_in_next,
+        .to_shift_right = !starts_in_previous && ends_in_next &&
+                          !(cur_end == population_size),
+        .complete = !starts_in_previous && !ends_in_next,
+    };
+    buffer[index] = cur;
+    index++;
+    cur_start += logical_chunk_size;
+  }
+  return index;
 }
-#endif
 
+// TODO paralelize
+// TODO move to right place
+//  it computes the best, the food, the enemy, and the sums of speeds and
+//  positions of an interval. the interval must be inside the current thread
+//  chunk
+void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
+                                unsigned int *seed) {
 
+  unsigned start = max(current_chunk->start, d->start);
+  unsigned end = min(current_chunk->end, d->end);
 
+  unsigned dim = d->dim;
+  float *cumulated_pos = current_chunk->comp.cumulated_pos;
+  float *cumulated_speed = current_chunk->comp.cumulated_speeds;
 
-// take timing not including IO
-float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int threads, unsigned int rank_id, float space_size, unsigned int srand) {
-  if(MESSAGE_SIZE<p.problem_dimensions){
-    fprintf(stderr, "impossible to compute with %d dimensions, recompile with a bigger MESSAGE_SIZE\n", p.problem_dimensions);
+  zeroed(cumulated_pos, dim);
+  zeroed(cumulated_speed, dim);
+
+  float next_enemy_fitness = d->fitness(d->positions, &d->seed, dim);
+  float next_food_fitness = next_enemy_fitness;
+  // status->n = d->local_n;
+
+  unsigned int indexes[2] = {0, 0};
+  end = end - d->start;
+  for (unsigned int k = start - d->start; k < end; k++) {
+    float *iter_pos = d->positions + dim * k;
+    float *iter_speed = d->speeds + dim * k;
+    sum_assign(cumulated_pos, iter_pos, dim);
+    sum_assign(cumulated_speed, iter_speed, dim);
+
+    float fitness = d->fitness(iter_pos, seed, dim);
+
+    if (fitness > next_food_fitness) {
+      indexes[0] = k;
+      next_food_fitness = fitness;
+    }
+    if (fitness < next_enemy_fitness) {
+      indexes[1] = k;
+      next_enemy_fitness = fitness;
+    }
+  }
+
+  memcpy(current_chunk->comp.next_food, d->positions + indexes[0] * dim,
+         sizeof(float) * dim);
+  memcpy(current_chunk->comp.next_enemy, d->positions + indexes[1] * dim,
+         sizeof(float) * dim);
+  current_chunk->comp.next_enemy_fitness=next_enemy_fitness;
+  current_chunk->comp.next_food_fitness=next_food_fitness;
+  current_chunk->comp.n = end - (start - d->start);
+}
+
+float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
+                         unsigned int threads, unsigned int rank_id,
+                         float space_size, unsigned int srand) {
+  if (MESSAGE_SIZE < p.problem_dimensions) {
+    fprintf(stderr,
+            "impossible to compute with %d dimensions, recompile with a bigger "
+            "MESSAGE_SIZE\n",
+            p.problem_dimensions);
     exit(-1);
   }
-  if(p.n_chunks>MAX_CHUNKS){
-    fprintf(stderr, "impossible to compute with %d chunks, recompile with a bigger MAX_CHUNKS\n", p.n_chunks);
+#ifndef USE_MPI
+  if (threads > 1) {
+    fprintf(stderr, "impossible to compute with multiple process without mpi, "
+                    "recompile with USE_MPI\n");
     exit(-1);
+  }
+#endif
+  // TODO remove temporary asserts
+  assert(p.population_size > threads);
+  assert(p.population_size > c.start_count);
+  // compute start and end phisical_thread
+  unsigned int phisical_chunk_size = p.population_size / threads;
+  unsigned int phisical_start = phisical_chunk_size * rank_id;
+  unsigned int phisical_end = rank_id == threads - 1
+                                  ? p.population_size
+                                  : phisical_start + phisical_chunk_size;
+  //printf("start=%d end=%d rank=%d\n", phisical_start, phisical_end, rank_id);
+  assert(phisical_chunk_size >= 1);
+
+  // compute maximum number of logical_chunks in a phisical_chunk, it will not
+  // divide in exactly c.start_count, but it tries to be as close and balanced
+  // as possible. This means that for high start_count the number could differ
+  // (if close to population size)
+  unsigned int logical_chunk_size =
+      (p.population_size + c.start_count - 1) / c.start_count;
+
+  assert(phisical_chunk_size >= 1);
+  assert(logical_chunk_size >= 1);
+  // upper_bound((phisical_chunk_size-1)/logical_chunk_size)+1
+  //the last one is the biggest
+  unsigned int last_size = p.population_size-(p.population_size/phisical_chunk_size)*(phisical_chunk_size-1);
+  unsigned int maximum_logical_chunks =
+      (max(phisical_chunk_size, last_size) + logical_chunk_size - 1) / logical_chunk_size + 1;
+
+  // define mpi structs (if available)
+  // #ifdef USE_MPI
+  MPI_Datatype computation_status_type;
+  Build_mpi_type_computation_status(&computation_status_type);
+  // #endif
+
+  LogicalChunk *local_chunks =
+      malloc(sizeof(LogicalChunk) * maximum_logical_chunks);
+
+  Dragonfly cur =
+      dragonfly_new(p.problem_dimensions, phisical_start, phisical_end,
+                    p.iterations, space_size, w, fitness, rank_id + srand);
+
+  dragonfly_alloc(&cur);
+  ComputationStatus temp_comp;
+  // MAIN COMPUTATION
+  for (unsigned int i = 0; i < p.iterations; i++) {
+    logical_chunk_size =
+      (p.population_size + c.count - 1) / c.count;
+    unsigned int n_local_chunks =
+        assing_logical_chunks(cur.start, cur.end, phisical_chunk_size, p.population_size,
+                              logical_chunk_size, local_chunks);
+    // 1) accumulate
+    for (unsigned int j = 0; j < n_local_chunks; j++) {
+      // TODO paralelization opportunity if handling correctly random seed
+      new_computation_accumulate(&cur, &local_chunks[j], &cur.seed);
+    }
+    // 2) send rightmost part to 1 left
+
+     MPI_Barrier(MPI_COMM_WORLD);
+    // RECIVING FROM RIGHT
+    if (local_chunks[n_local_chunks - 1].to_shift_right) {
+      MPI_Status s;
+      int err=0;
+      // SENDING LEFT
+      if (local_chunks[0].to_shift_left) {
+        printf("sendrecv %d<-(%d)<-%d\n", rank_id-1, rank_id, rank_id+1);
+        fflush(stdout);
+        err = MPI_Sendrecv(&local_chunks[0].comp, 1, computation_status_type,
+                     rank_id - 1, 0, &temp_comp, 1, computation_status_type,
+                     rank_id + 1, 0, MPI_COMM_WORLD, &s);
+        printf("ok sendrecv %d<-(%d)<-%d, %d\n", rank_id-1, rank_id, rank_id+1, s.MPI_ERROR);
+      } else {
+        printf("recv (%d)<-%d\n", rank_id, rank_id+1);
+        fflush(stdout);
+        err = MPI_Recv(&temp_comp, 1, computation_status_type, rank_id + 1, 0,
+                 MPI_COMM_WORLD, &s);
+        printf("ok recv (%d)<-%d %d\n", rank_id, rank_id+1, s.MPI_ERROR);
+      }
+      if (err != MPI_SUCCESS) {
+        char err_string[MPI_MAX_ERROR_STRING];
+        int err_len;
+        MPI_Error_string(err, err_string, &err_len);
+        printf("Rank %d: MPI_Recv failed with error: %s\n", rank_id, err_string);
+    }
+    } else if (local_chunks[0].to_shift_left) {
+       // SENDING LEFT
+      printf("send %d<-(%d)\n", rank_id-1, rank_id);
+      fflush(stdout);
+      MPI_Send(&local_chunks[0].comp, 1, computation_status_type, rank_id-1, 0, MPI_COMM_WORLD);
+      printf("ok send %d<-(%d)\n", rank_id-1, rank_id);
+     
+    }
+    /*MPI_Barrier(MPI_COMM_WORLD);
+    
+    if(rank_id==0){
+      sleep(3);
+      printf("BARRIER#########################\n");
+    }
+    
+    fflush(stdout);
+    sleep(3);
+     MPI_Barrier(MPI_COMM_WORLD);*/
+    // 3) butterfly
+    // 4) rightize
+    // 5) compute
+    // 6) update parameters
+    update_chunk_size(&c);
+  }
+
+  // Clean up allocated memory
+  free(local_chunks);
+  dragonfly_free(cur);
+  
+  // Free the MPI datatype
+  MPI_Type_free(&computation_status_type);
+
+  // Return the best solution found (for now, return a valid result)
+  float *result = malloc(sizeof(float) * p.problem_dimensions);
+  // Initialize with zeros for now - in a complete implementation, 
+  // this would contain the best solution found
+  for (unsigned int i = 0; i < p.problem_dimensions; i++) {
+    result[i] = 0.0f;
+  }
+  
+  return result;
+}
+
+/*
+
+// take timing not including IO
+float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int
+threads, unsigned int rank_id, float space_size, unsigned int srand) {
+
+  if(p.n_chunks>MAX_CHUNKS){
+    fprintf(stderr, "impossible to compute with %d chunks, recompile with a
+bigger MAX_CHUNKS\n", p.n_chunks); exit(-1);
   }
   if(p.n_chunks==0){
     fprintf(stderr, "impossible to compute with 0 chunks\n");
@@ -234,10 +457,11 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
 
   }
   // compute start and end rank
-  unsigned int start_chunk = rank_id*(p.n_chunks/threads) + min(rank_id, p.n_chunks%threads);
-  unsigned int current_chunks = p.n_chunks/threads + (rank_id<(p.n_chunks%threads));
-  unsigned int end_chunk = start_chunk + current_chunks;
-  
+  unsigned int start_chunk = rank_id*(p.n_chunks/threads) + min(rank_id,
+p.n_chunks%threads); unsigned int current_chunks = p.n_chunks/threads +
+(rank_id<(p.n_chunks%threads)); unsigned int end_chunk = start_chunk +
+current_chunks;
+
 
   #ifdef USE_MPI
     MPI_Datatype message_type, computation_status_type;
@@ -249,9 +473,9 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
 
   // allocate problem
   for (unsigned int i = 0; i < current_chunks; i++) {
-    unsigned int cur_n = p.population_size/p.n_chunks + (i<(p.population_size%p.n_chunks));
-    d[i] = dragonfly_new(p.problem_dimensions, cur_n, p.iterations, space_size, w,
-                         fitness, i + start_chunk+ srand);
+    unsigned int cur_n = p.population_size/p.n_chunks +
+(i<(p.population_size%p.n_chunks)); d[i] = dragonfly_new(p.problem_dimensions,
+cur_n, p.iterations, space_size, w, fitness, i + start_chunk+ srand);
     dragonfly_alloc(&d[i]);
   }
 
@@ -268,8 +492,8 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
     log_chunks++;
   }
 
-  unsigned int update_chunk_steps = (p.iterations + log_chunks) / (log_chunks + 1);
-  Message message;
+  unsigned int update_chunk_steps = (p.iterations + log_chunks) / (log_chunks +
+1); Message message;
 
   // for each iteration
   for (unsigned int i = 0; i < p.iterations; i++) {
@@ -279,29 +503,31 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
 
     // compute avarage speed and positions
     for(unsigned int j=0; j<current_chunks; j++){
-      computation_accumulate(&message.status[j+start_chunk], &d[j], best, &best_fitness, p.threads_per_process);
+      computation_accumulate(&message.status[j+start_chunk], &d[j], best,
+&best_fitness, p.threads_per_process);
     }
     message.start_chunk=start_chunk;
     message.end_chunk=end_chunk;
-    
-    //send current chunks to others, and retrive collective status (if USE_MPI is defined)
-    #ifdef USE_MPI
-      message_broadcast(&message, rank_id, threads, &message_type);
-    #endif
+
+    //send current chunks to others, and retrive collective status (if USE_MPI
+is defined) #ifdef USE_MPI message_broadcast(&message, rank_id, threads,
+&message_type); #endif
     //prepare and compute
-    for(unsigned int j=start_chunk-start_chunk%joint_chunks; j<end_chunk; j+=joint_chunks){
-      for(unsigned int k=1; k<joint_chunks; k++){
+    for(unsigned int j=start_chunk-start_chunk%joint_chunks; j<end_chunk;
+j+=joint_chunks){ for(unsigned int k=1; k<joint_chunks; k++){
         if(j+k<p.n_chunks){
-          computation_status_merge(&message.status[j], &message.status[j+k], p.problem_dimensions);
+          computation_status_merge(&message.status[j], &message.status[j+k],
+p.problem_dimensions);
         }
       }
       scalar_prod_assign(message.status[j].cumulated_speeds,
-                         1.0 / (float)message.status[j].n, p.problem_dimensions);
-      for(unsigned int k=0; k<joint_chunks; k++){
+                         1.0 / (float)message.status[j].n,
+p.problem_dimensions); for(unsigned int k=0; k<joint_chunks; k++){
         if(start_chunk<=j+k && j+k<end_chunk){
-          dragonfly_compute_step(&d[j+k-start_chunk], message.status[j].cumulated_speeds,
-                            message.status[j].cumulated_pos, message.status[j].next_food,
-                            message.status[j].next_enemy, message.status[j].n, p.threads_per_process);
+          dragonfly_compute_step(&d[j+k-start_chunk],
+message.status[j].cumulated_speeds, message.status[j].cumulated_pos,
+message.status[j].next_food, message.status[j].next_enemy, message.status[j].n,
+p.threads_per_process);
         }
       }
     }
@@ -309,28 +535,30 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
   // check last iteration
   // compute avarage speed and positions
   for(unsigned int j=0; j<current_chunks; j++){
-      computation_accumulate(&message.status[j+start_chunk], &d[j], best, &best_fitness, p.threads_per_process);
+      computation_accumulate(&message.status[j+start_chunk], &d[j], best,
+&best_fitness, p.threads_per_process);
     }
   message.start_chunk=start_chunk;
   message.end_chunk=end_chunk;
 
   if(message.status[start_chunk].next_food_fitness< best_fitness) {
-    memcpy(message.status[start_chunk].next_food, best, p.problem_dimensions*sizeof(float));
+    memcpy(message.status[start_chunk].next_food, best,
+p.problem_dimensions*sizeof(float));
     message.status[start_chunk].next_food_fitness = best_fitness;
   }
 
-  //send current chunks to others, and retrive collective status (if USE_MPI is defined)
-  #ifdef USE_MPI
-    message_broadcast(&message, rank_id, threads, &message_type);
-  #endif
+  //send current chunks to others, and retrive collective status (if USE_MPI is
+defined) #ifdef USE_MPI message_broadcast(&message, rank_id, threads,
+&message_type); #endif
 
   for(unsigned int i=0; i<p.n_chunks; i++){
-    computation_status_merge(&message.status[0], &message.status[i], p.problem_dimensions);
+    computation_status_merge(&message.status[0], &message.status[i],
+p.problem_dimensions);
   }
 
-  memcpy(best, message.status[start_chunk].next_food, p.problem_dimensions*sizeof(float));
-  for(unsigned int i=0; i<current_chunks; i++){
-    dragonfly_free(d[i]);
+  memcpy(best, message.status[start_chunk].next_food,
+p.problem_dimensions*sizeof(float)); for(unsigned int i=0; i<current_chunks;
+i++){ dragonfly_free(d[i]);
   }
   free(d);
   //memcpy(best, message.status[0].next_food, p.dim*sizeof(float));
@@ -339,4 +567,25 @@ float *dragonfly_compute(Parameters p, Weights w, Fitness fitness, unsigned int 
   MPI_Type_free(&computation_status_type);
   #endif
   return best;
+}*/
+
+ChunkSize new_chunk_size(unsigned int start_count, unsigned int end_count,
+                         unsigned int steps) {
+  ChunkSize r = {
+      .start_count = start_count,
+      .end_count = end_count,
+      .current_step = 0,
+      .total_steps = steps,
+      .count = start_count,
+  };
+  return r;
+}
+
+void update_chunk_size(ChunkSize *c) {
+  c->current_step++;
+  c->count =
+      (unsigned int)(powf((float)c->end_count / (float)c->start_count,
+                          (float)c->current_step / (float)c->total_steps) *
+                     (float)c->start_count);
+  //printf("%d %d\n", c->current_step, c->count);
 }

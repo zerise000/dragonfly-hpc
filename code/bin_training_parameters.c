@@ -43,7 +43,7 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  Parameters p = {.population_size = 128, .problem_dimensions = 10, .n_chunks = 64, .iterations = 200};
+  Parameters p = {.population_size = 128, .problem_dimensions = 10, .starting_chunk_count = 64, .iterations = 200};
 
   Fitness fitness = shifted_fitness;
   int N = 30;

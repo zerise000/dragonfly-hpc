@@ -2,8 +2,9 @@ CC=gcc
 CFLAGS=-Wall -Wextra -std=c11  -D_POSIX_C_SOURCE=200112L -ggdb3
 #-O3
 DLL=-lm 
-BINARIES=serial.bin training_mpich.bin mpich.bin training_parameters.bin
-DUSE=-DUSE_MPI -DUSE_OPENMP
+BINARIES=serial.bin training_mpich.bin mpich.bin training_parameters.bin mpich_2.bin
+DUSE=-DUSE_MPI 
+#-DUSE_OPENMP
 
 all: $(BINARIES)
 
@@ -19,6 +20,10 @@ training_parameters.bin: bin_training_parameters.c utils.c dragonfly-common.c
 
 mpich.bin: bin_mpich.c utils.c dragonfly-common.c
 	mpicc $(CFLAGS) $(DUSE) -o $@ $^ $(DLL) -fopenmp
+
+mpich_2.bin: bin_mpich_2.c utils.c dragonfly-common.c
+	OMPI_MPICC=$(CC)  mpicc $(CFLAGS) $(DUSE) -o $@ $^ $(DLL) 
+#-fopenmp
 
 .PHONY clean: 
 	@rm -f $(BINARIES)
