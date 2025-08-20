@@ -204,7 +204,6 @@ typedef struct {
   bool complete;
 
   ComputationStatus comp;
-  // TODO add message
 } LogicalChunk;
 
 unsigned int assing_logical_chunks(unsigned int phisical_chunk_start,
@@ -219,9 +218,9 @@ unsigned int assing_logical_chunks(unsigned int phisical_chunk_start,
   unsigned int index = 0;
   while (cur_start < phisical_chunk_end) {
     unsigned int cur_end = min(cur_start + logical_chunk_size, population_size);
-    bool starts_in_previous = cur_start<phisical_chunk_start && phisical_chunk_start<cur_end && cur_end<phisical_chunk_end-1;
+    bool starts_in_previous = cur_start<phisical_chunk_start && phisical_chunk_start<cur_end && cur_end<phisical_chunk_end;
     unsigned int next_phisical_end = remaining<=1 ? population_size: phisical_chunk_end+phisical_chunk_size;  
-    bool ends_in_next = phisical_chunk_end<cur_end && cur_end<next_phisical_end-1;
+    bool ends_in_next = phisical_chunk_end<cur_end && cur_end<next_phisical_end;
     LogicalChunk cur = {
         .start = cur_start,
         .end = cur_end,
@@ -237,6 +236,38 @@ unsigned int assing_logical_chunks(unsigned int phisical_chunk_start,
     cur_start += logical_chunk_size;
   }
   return index;
+}
+unsigned int upper_log2(unsigned int n) {
+    unsigned int log = 0;
+    if (n == 0) return 0; // or handle as needed
+    n--;
+    while (n > 0) {
+        n >>= 1;
+        log++;
+    }
+    return log;
+}
+void comunicate(LogicalChunk *cur, MPI_Datatype type, unsigned int phisical_chunk_size, unsigned int rank_id, unsigned int thread_count, unsigned int dim){
+  unsigned int start = cur->start/phisical_chunk_size;
+  unsigned int end = min(cur->end/phisical_chunk_size, thread_count-1);
+  unsigned int size = end-start;
+  
+  unsigned int required_steps=upper_log2(size);
+  ComputationStatus tmp;
+  unsigned inner_rank_id = rank_id-start;
+  printf("comunicate1 %d %d %d %d %d\n", cur->start, cur->end, size, rank_id, required_steps);
+  for(unsigned int i=0; i<required_steps; i++){
+    
+    unsigned partner = (inner_rank_id ^ (1<<i))+start;
+    
+    if(start<=partner&&partner<end){
+      printf("comunicate2 %d %d %d->%d\n", start, end, rank_id, partner);
+      fflush(stdout);
+      MPI_Sendrecv(&cur->comp, 1, type, partner, 1, &tmp, 1, type, partner, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      computation_status_merge(&cur->comp, &tmp, dim);
+    }
+  }
+  printf("end comunicate1 %d %d %d %d %d\n", cur->start, cur->end, size, rank_id, required_steps);
 }
 
 // TODO paralelize
@@ -268,6 +299,7 @@ void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
     float *iter_speed = d->speeds + dim * k;
     sum_assign(cumulated_pos, iter_pos, dim);
     sum_assign(cumulated_speed, iter_speed, dim);
+    printf("SUM_ASSIGN %f\n", *cumulated_pos);
 
     float fitness = d->fitness(iter_pos, seed, dim);
 
@@ -359,7 +391,12 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
   ComputationStatus temp_comp;
   // Initialize temp_comp to avoid uninitialized memory issues
   memset(&temp_comp, 0, sizeof(ComputationStatus));
-
+        for(unsigned j =phisical_start; j<phisical_end; j++){
+          for(unsigned z=0; z<p.problem_dimensions; z++){
+            cur.positions[(j-phisical_start)*p.problem_dimensions+z]=(float)j;
+          }
+          
+        }
   // MAIN COMPUTATION
   for (unsigned int i = 0; i < p.iterations; i++) {
     logical_chunk_size = (p.population_size + c.count - 1) / c.count;
@@ -371,6 +408,7 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
     for (unsigned int j = 0; j < n_local_chunks; j++) {
       // TODO paralelization opportunity if handling correctly random seed
       new_computation_accumulate(&cur, &local_chunks[j], &cur.seed);
+      //printf("ACCUMULATED? %f", *cur.positions);
     }
 
     // 2) send rightmost part to 1 left
@@ -406,6 +444,7 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
         printf("Rank %d: MPI_Recv failed with error: %s\n", rank_id,
                err_string);
       }
+      computation_status_merge(&local_chunks[n_local_chunks-1].comp, &temp_comp, p.problem_dimensions);
     } else if (local_chunks[0].to_shift_left) {
       // SENDING LEFT
       printf("1send %d<-(%d)\n", rank_id - 1, rank_id);
@@ -415,10 +454,23 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
       printf("1ok send %d<-(%d)\n", rank_id - 1, rank_id);
       fflush(stdout);
     }
-
+    MPI_Barrier(MPI_COMM_WORLD);
+    sleep(1);
+    if (rank_id == 0) {
+      sleep(1);
+      printf("BARRIER1#########################\n");
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
     // 3) butterfly
+    comunicate(&local_chunks[n_local_chunks-1], computation_status_type, phisical_chunk_size, rank_id, threads, p.problem_dimensions);
     // 4) rightize
-
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+    sleep(1);
+    if (rank_id == 0) {
+      sleep(1);
+      printf("BARRIER2#########################\n");
+    }
     MPI_Barrier(MPI_COMM_WORLD);
 
     // RECEIVING FROM LEFT
@@ -449,6 +501,8 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
         printf("Rank %d: MPI_Recv failed with error: %s\n", rank_id,
                err_string);
       }
+      memcpy(&local_chunks[0].comp, &temp_comp, sizeof(ComputationStatus)); 
+      //computation_status_merge(&local_chunks[0].comp, &temp_comp, p.problem_dimensions);
     } else if (local_chunks[n_local_chunks - 1].to_shift_right) {
       // SENDING RIGHT
       printf("send (%d)->%d\n", rank_id, rank_id + 1);
@@ -456,6 +510,16 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
       MPI_Send(&local_chunks[n_local_chunks - 1].comp, 1,
                computation_status_type, rank_id + 1, 0, MPI_COMM_WORLD);
       printf("ok send (%d)->%d\n", rank_id, rank_id + 1);
+    }
+    //TODO remove sanity check
+    for(unsigned j =0; j<n_local_chunks; j++){
+      if(local_chunks[j].comp.n!=local_chunks[j].end-local_chunks[j].start){
+        printf("FUUUUCK [%d %d]: %d %d %f\n", local_chunks[j].start, local_chunks[j].end, local_chunks[j].comp.n, local_chunks[j].end-local_chunks[j].start, *local_chunks[j].comp.cumulated_pos);
+        fflush(stdout);
+        sleep(1);
+        assert(local_chunks[j].comp.n==local_chunks[j].end-local_chunks[j].start);
+      }
+      
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
