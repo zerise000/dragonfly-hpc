@@ -12,10 +12,10 @@ serial.bin: bin_serial.c utils.c dragonfly-common.c
 	$(CC) $(CFLAGS) -o $@ $^ $(DLL) 
 
 training_mpich.bin: bin_training_mpich.c utils.c dragonfly-common.c
-	mpicc $(CFLAGS) $(DUSE) -o $@ $^ $(DLL) -fopenmp
+	OMPI_MPICC=$(CC)  mpicc $(CFLAGS) $(DUSE) -o $@ $^ $(DLL) 
 #-fopenmp
 training_parameters.bin: bin_training_parameters.c utils.c dragonfly-common.c
-	$(CC) $(CFLAGS) -o $@ $^ $(DLL)
+	OMPI_MPICC=$(CC)  mpicc $(CFLAGS) $(DUSE) -o $@ $^ $(DLL) 
 
 
 mpich.bin: bin_mpich.c utils.c dragonfly-common.c

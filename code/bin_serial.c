@@ -16,7 +16,8 @@ int main(int argc, char *argv[]) {
   Parameters p = parameter_parse(argc, argv);
   unsigned int seed = time(NULL);
   float *shifted_tmp = malloc(sizeof(float) * p.problem_dimensions);
-  float *shifted_rotation = malloc(sizeof(float) * p.problem_dimensions * p.problem_dimensions);
+  float *shifted_rotation =
+      malloc(sizeof(float) * p.problem_dimensions * p.problem_dimensions);
   float *shifted_shift = init_array(p.problem_dimensions, 100.0, &seed);
   init_matrix(shifted_rotation, 100.0, p.problem_dimensions, &seed);
 
@@ -24,20 +25,9 @@ int main(int argc, char *argv[]) {
                        rastrigin_fitness);
 
   Fitness fitness = shifted_fitness;
-  float wi[14] = {0.803008,
-0.801540,
-0.000000,
-4.131542,
-1.180980,
-2.213441,
-1.289022,
-0.828981,
-0.100000,
-0.022841,
-0.000000,
-0.000000,
-0.108948,
-0.404676};
+  float wi[14] = {0.803008, 0.801540, 0.000000, 4.131542, 1.180980,
+                  2.213441, 1.289022, 0.828981, 0.100000, 0.022841,
+                  0.000000, 0.000000, 0.108948, 0.404676};
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},
@@ -51,7 +41,7 @@ int main(int argc, char *argv[]) {
   };
 
   float *res = dragonfly_compute(p, w, fitness, 1, 0, 100.0, seed);
-  unsigned int s =0;
+  unsigned int s = 0;
   float fit = fitness(res, &s, p.problem_dimensions);
 
   printf("found fitness=%f\n", fit);

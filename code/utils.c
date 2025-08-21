@@ -170,7 +170,7 @@ float shifted_fitness(float *inp, unsigned int *seed, unsigned int dim) {
 #include <omp.h>
 
 #endif
-
+/*
 void inner_dragonfly_step(Dragonfly *d, float *average_speed,
                           float *cumulated_pos, float *food, float *enemy,
                           unsigned int N, unsigned int base, unsigned int limit,
@@ -213,7 +213,7 @@ void inner_dragonfly_step(Dragonfly *d, float *average_speed,
     }
   }
 }
-/*
+
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
                             float *cumulated_pos, float *food, float *enemy,
                             unsigned int N, unsigned int NR_THREADS) {

@@ -10,13 +10,10 @@
 #include "dragonfly-common.h"
 #include "utils.h"
 
-
 int main(int argc, char *argv[]) {
   MPI_Init(NULL, NULL);
   // wait for all the process to start
   MPI_Barrier(MPI_COMM_WORLD);
-
-  
 
   // start clock
   clock_t start_time;
@@ -36,7 +33,7 @@ int main(int argc, char *argv[]) {
       .wl = {0.6, 0.6},
       .ll = {0.1, 0.1},
 
-      //chuk size
+      // chuk size
   };
   ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
 
@@ -48,7 +45,7 @@ int main(int argc, char *argv[]) {
   float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 100.0, 0);
 
   MPI_Barrier(MPI_COMM_WORLD);
-  unsigned int s =0;
+  unsigned int s = 0;
   float fit = fitness(res, &s, p.problem_dimensions);
 
   if (rank == 0) {
