@@ -16,6 +16,8 @@ int main(int argc, char *argv[]) {
   // wait for all the process to start
   MPI_Barrier(MPI_COMM_WORLD);
 
+  
+
   // start clock
   clock_t start_time;
   start_time = clock();
