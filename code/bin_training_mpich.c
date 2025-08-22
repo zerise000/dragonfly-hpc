@@ -5,8 +5,29 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include<errno.h>
+int msleep(long msec)
+{
+    struct timespec ts;
+    int res;
+
+    if (msec < 0)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    ts.tv_sec = msec / 1000;
+    ts.tv_nsec = (msec % 1000) * 1000000;
+
+    do {
+        res = nanosleep(&ts, &ts);
+    } while (res && errno == EINTR);
+
+    return res;
+}
 
 float eval(float *wi, unsigned int *seedi, unsigned int d) {
   unsigned int seed = *seedi;
@@ -32,7 +53,6 @@ float eval(float *wi, unsigned int *seedi, unsigned int d) {
     wi[11] /= 1.2 * m;
   }
   (void)d;
-
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},
@@ -77,7 +97,6 @@ float eval(float *wi, unsigned int *seedi, unsigned int d) {
     free(shifted_shift);
     free(res);
   }
-
   return avg / N;
 }
 
@@ -112,7 +131,7 @@ int main(int argc, char **argv) {
       .ll = {wi[12], wi[13]},
   };
   float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 2.0, 0);
-
+  //float *res = malloc(sizeof(float)*p.population_size); 
   MPI_Barrier(MPI_COMM_WORLD);
 
   if (rank == 0) {

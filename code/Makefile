@@ -2,7 +2,8 @@ CC=gcc
 CFLAGS=-Wall -Wextra -std=c11  -D_POSIX_C_SOURCE=200112L -ggdb3
 #-O3
 DLL=-lm 
-BINARIES=serial.bin training_mpich.bin mpich.bin training_parameters.bin mpich_2.bin
+BINARIES= training_mpich.bin  training_parameters.bin mpich_2.bin
+#serial.bin mpich.bin
 DUSE=-DUSE_MPI 
 #-DUSE_OPENMP
 

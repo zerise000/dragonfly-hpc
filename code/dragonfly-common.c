@@ -362,7 +362,7 @@ void inner_dragonfly_step(Dragonfly *d, LogicalChunk chunk,
                           unsigned int random_seed) {
 
   unsigned int dimensions = d->dim;
-  printf("%d\n", dimensions);
+  //printf("%d\n", dimensions);
   float S;
   float A;
   float C;
@@ -409,6 +409,7 @@ void inner_dragonfly_step(Dragonfly *d, LogicalChunk chunk,
 float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
                          unsigned int threads, unsigned int rank_id,
                          float space_size, unsigned int srand) {
+                          
   if (MESSAGE_SIZE < p.problem_dimensions) {
     fprintf(stderr,
             "impossible to compute with %d dimensions, recompile with a bigger "
@@ -456,10 +457,14 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
       (logical_span + logical_chunk_size - 1) / logical_chunk_size + 1;
 
   // define mpi structs (if available)
-  // #ifdef USE_MPI
-  MPI_Datatype computation_status_type;
-  Build_mpi_type_computation_status(&computation_status_type);
-  // #endif
+  void *computation_status_type=NULL;
+  if (threads > 1) {
+    computation_status_type=malloc(sizeof(MPI_Datatype));
+    //MPI_Datatype computation_status_type;
+     Build_mpi_type_computation_status(computation_status_type);
+  }
+  
+  // #endif// #ifdef USE_MPI
 
   LogicalChunk *local_chunks =
       malloc(sizeof(LogicalChunk) * maximum_logical_chunks);
@@ -473,12 +478,10 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
 
   dragonfly_alloc(&cur);
   ComputationStatus temp_comp;
-
   float *best = malloc(sizeof(float) * p.problem_dimensions);
   memcpy(best, cur.positions, sizeof(float) * p.problem_dimensions);
   unsigned seed = 0;
   float best_fitness = cur.fitness(best, &seed, p.problem_dimensions);
-
   // exit(0);
   //  MAIN COMPUTATION
   for (unsigned int i = 0; i < p.iterations; i++) {
@@ -493,60 +496,62 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
       new_computation_accumulate(&cur, &local_chunks[j], &cur.seed);
       // printf("ACCUMULATED? %f", *cur.positions);
     }
-
-    // 2) send rightmost part to 1 left
-    // MPI_Barrier(MPI_COMM_WORLD);
-    // sleep(3);
-    // RECIVING FROM RIGHT
-    if (local_chunks[n_local_chunks - 1].to_shift_right) {
-      MPI_Status s;
-      int err = 0;
-      // SENDING LEFT
-      if (local_chunks[0].to_shift_left) {
-        printf("1sendrecv %d<-(%d)<-%d\n", rank_id - 1, rank_id, rank_id + 1);
-        fflush(stdout);
-        err =
-            MPI_Sendrecv(&local_chunks[0].comp, 1, computation_status_type,
-                         rank_id - 1, 0, &temp_comp, 1, computation_status_type,
-                         rank_id + 1, 0, MPI_COMM_WORLD, &s);
-        printf("1ok sendrecv %d<-(%d)<-%d\n", rank_id - 1, rank_id,
-               rank_id + 1);
-        fflush(stdout);
-      } else {
-        printf("1recv (%d)<-%d\n", rank_id, rank_id + 1);
-        fflush(stdout);
-        err = MPI_Recv(&temp_comp, 1, computation_status_type, rank_id + 1, 0,
-                       MPI_COMM_WORLD, &s);
-        printf("1ok sendrecv (%d)<-%d\n", rank_id, rank_id + 1);
-        fflush(stdout);
+    if (threads > 1) {
+      
+      // 2) send rightmost part to 1 left
+      // MPI_Barrier(MPI_COMM_WORLD);
+      // sleep(3);
+      // RECIVING FROM RIGHT
+      if (local_chunks[n_local_chunks - 1].to_shift_right) {
+        MPI_Status s;
+        int err = 0;
+        // SENDING LEFT
+        if (local_chunks[0].to_shift_left) {
+          //printf("1sendrecv %d<-(%d)<-%d\n", rank_id - 1, rank_id, rank_id + 1);
+          //fflush(stdout);
+          err = MPI_Sendrecv(&local_chunks[0].comp, 1, *(MPI_Datatype*)computation_status_type,
+                             rank_id - 1, 0, &temp_comp, 1,
+                             *(MPI_Datatype*)computation_status_type, rank_id + 1, 0,
+                             MPI_COMM_WORLD, &s);
+          //printf("1ok sendrecv %d<-(%d)<-%d\n", rank_id - 1, rank_id,
+          //       rank_id + 1);
+          //fflush(stdout);
+        } else {
+          //printf("1recv (%d)<-%d\n", rank_id, rank_id + 1);
+          //fflush(stdout);
+          err = MPI_Recv(&temp_comp, 1, *(MPI_Datatype*)computation_status_type, rank_id + 1, 0,
+                         MPI_COMM_WORLD, &s);
+          //printf("1ok sendrecv (%d)<-%d\n", rank_id, rank_id + 1);
+          //fflush(stdout);
+        }
+        if (err != MPI_SUCCESS) {
+          char err_string[MPI_MAX_ERROR_STRING];
+          int err_len;
+          MPI_Error_string(err, err_string, &err_len);
+          // printf("Rank %d: MPI_Recv failed with error: %s\n", rank_id,
+          //        err_string);
+        }
+        computation_status_merge(&local_chunks[n_local_chunks - 1].comp,
+                                 &temp_comp, p.problem_dimensions);
+      } else if (local_chunks[0].to_shift_left) {
+        // SENDING LEFT
+        // printf("1send %d<-(%d)\n", rank_id - 1, rank_id);
+        // fflush(stdout);
+        MPI_Send(&local_chunks[0].comp, 1, *(MPI_Datatype*)computation_status_type, rank_id - 1,
+                 0, MPI_COMM_WORLD);
+        // printf("1ok send %d<-(%d)\n", rank_id - 1, rank_id);
+        // fflush(stdout);
       }
-      if (err != MPI_SUCCESS) {
-        char err_string[MPI_MAX_ERROR_STRING];
-        int err_len;
-        MPI_Error_string(err, err_string, &err_len);
-        // printf("Rank %d: MPI_Recv failed with error: %s\n", rank_id,
-        //        err_string);
-      }
-      computation_status_merge(&local_chunks[n_local_chunks - 1].comp,
-                               &temp_comp, p.problem_dimensions);
-    } else if (local_chunks[0].to_shift_left) {
-      // SENDING LEFT
-      // printf("1send %d<-(%d)\n", rank_id - 1, rank_id);
-      // fflush(stdout);
-      MPI_Send(&local_chunks[0].comp, 1, computation_status_type, rank_id - 1,
-               0, MPI_COMM_WORLD);
-      // printf("1ok send %d<-(%d)\n", rank_id - 1, rank_id);
-      // fflush(stdout);
-    }
-    /*MPI_Barrier(MPI_COMM_WORLD);
-    sleep(1);
-    if (rank_id == 0) {
+      /*MPI_Barrier(MPI_COMM_WORLD);
       sleep(1);
-      printf("BARRIER1#########################\n");
-    }*/
-    MPI_Barrier(MPI_COMM_WORLD);
+      if (rank_id == 0) {
+        sleep(1);
+        printf("BARRIER1#########################\n");
+      }*/
+      MPI_Barrier(MPI_COMM_WORLD);
+    
     // 3) butterfly
-    comunicate(&local_chunks[n_local_chunks - 1], computation_status_type,
+    comunicate(&local_chunks[n_local_chunks - 1], *(MPI_Datatype*)computation_status_type,
                phisical_chunk_size, rank_id, threads, p.population_size,
                p.problem_dimensions);
     // 4) rightize
@@ -568,15 +573,15 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
         // printf("sendrecv %d->(%d)->%d\n", rank_id - 1, rank_id, rank_id + 1);
         // fflush(stdout);
         err = MPI_Sendrecv(&local_chunks[n_local_chunks - 1].comp, 1,
-                           computation_status_type, rank_id + 1, 0, &temp_comp,
-                           1, computation_status_type, rank_id - 1, 0,
+                           *(MPI_Datatype*)computation_status_type, rank_id + 1, 0, &temp_comp,
+                           1, *(MPI_Datatype*)computation_status_type, rank_id - 1, 0,
                            MPI_COMM_WORLD, &s);
         // printf("ok sendrecv %d<-(%d)<-%d, %d\n", rank_id - 1, rank_id,
         //        rank_id + 1, s.MPI_ERROR);
       } else {
         // printf("recv %d->(%d)\n", rank_id - 1, rank_id);
         // fflush(stdout);
-        err = MPI_Recv(&temp_comp, 1, computation_status_type, rank_id - 1, 0,
+        err = MPI_Recv(&temp_comp, 1, *(MPI_Datatype*)computation_status_type, rank_id - 1, 0,
                        MPI_COMM_WORLD, &s);
         // printf("ok recv %d->(%d) %d\n", rank_id - 1, rank_id, s.MPI_ERROR);
       }
@@ -595,7 +600,7 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
       // printf("send (%d)->%d\n", rank_id, rank_id + 1);
       // fflush(stdout);
       MPI_Send(&local_chunks[n_local_chunks - 1].comp, 1,
-               computation_status_type, rank_id + 1, 0, MPI_COMM_WORLD);
+               *(MPI_Datatype*)computation_status_type, rank_id + 1, 0, MPI_COMM_WORLD);
       // printf("ok send (%d)->%d\n", rank_id, rank_id + 1);
     }
     // TODO remove sanity check
@@ -613,8 +618,8 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
       }
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    /*
+    /*MPI_Barrier(MPI_COMM_WORLD);
+    
         if (rank_id == 0) {
           sleep(3);
           printf("BARRIER#########################\n");
@@ -624,6 +629,7 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
         sleep(3);
         MPI_Barrier(MPI_COMM_WORLD);*/
 
+    }
     // 5) compute
 
     for (unsigned int k = 0; k < n_local_chunks; k++) {
@@ -646,9 +652,13 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
   free(local_chunks);
   dragonfly_free(cur);
   // Free the MPI datatype
-  MPI_Type_free(&computation_status_type);
+  if (threads > 1) {
+    MPI_Type_free(computation_status_type);
+  free(computation_status_type);
+  }
+  
   // Return the best solution found (for now, return a valid result)
-  printf("FUUUCK %f\n", best_fitness);
+  //printf("FUUUCK %f\n", best_fitness);
   return best;
 }
 
@@ -805,5 +815,5 @@ void update_chunk_size(ChunkSize *c) {
                     (float)c->current_step / (float)c->total_steps) *
                (float)c->start_count;
   c->count = (unsigned int)(round(temp));
-  printf("%d %d %f\n", c->current_step, c->count, temp);
+  //printf("%d %d %f\n", c->current_step, c->count, temp);
 }
