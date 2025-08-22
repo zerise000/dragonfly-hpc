@@ -1,35 +1,33 @@
 #include "dragonfly-common.h"
 #include "utils.h"
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include<math.h>
 #include <time.h>
-
-
 
 float eval(float *wi, unsigned int *seed, unsigned int d) {
   for (int i = 0; i < 14; i++) {
     if (wi[i] < 0.0) {
       wi[i] = 0.0;
     }
-    if(wi[i]>2.0){
-      wi[i]=2.0;
+    if (wi[i] > 2.0) {
+      wi[i] = 2.0;
     }
     if (i % 2 == 0 && wi[i] == wi[i + 1]) {
       wi[i + 1] += 0.0001;
     }
   }
   float m = max(wi[8], wi[9]);
-  if(m>0.1){
-    wi[8]/=10*m;
-    wi[9]/=10*m;
+  if (m > 0.1) {
+    wi[8] /= 10 * m;
+    wi[9] /= 10 * m;
   }
   m = max(wi[10], wi[11]);
-  if(m>1.0){
-    wi[10]/=1.2*m;
-    wi[11]/=1.2*m;
+  if (m > 1.0) {
+    wi[10] /= 1.2 * m;
+    wi[11] /= 1.2 * m;
   }
   (void)d;
   Weights w = {
@@ -43,37 +41,41 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  Parameters p = {.n = 128, .dim = 10, .chunks = 64, .iterations = 200};
+  Parameters p = {.population_size = 128,
+                  .problem_dimensions = 10,
+                  .starting_chunk_count = 64,
+                  .iterations = 200};
 
   Fitness fitness = shifted_fitness;
   int N = 30;
-  float *array = malloc(sizeof(float)*N);
+  float *array = malloc(sizeof(float) * N);
   for (int i = 0; i < N; i++) {
 
-    float *shifted_tmp = malloc(sizeof(float) * p.dim);
-    float *shifted_rotation = malloc(sizeof(float) * p.dim * p.dim);
-    float *shifted_shift = init_array(p.dim, 7.0, seed);
-    init_matrix(shifted_rotation, 10.0, p.dim, seed);
+    float *shifted_tmp = malloc(sizeof(float) * p.problem_dimensions);
+    float *shifted_rotation =
+        malloc(sizeof(float) * p.problem_dimensions * p.problem_dimensions);
+    float *shifted_shift = init_array(p.problem_dimensions, 7.0, seed);
+    init_matrix(shifted_rotation, 10.0, p.problem_dimensions, seed);
 
     init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift,
                          rastrigin_fitness);
-
-    float *res = dragonfly_compute(p, w, fitness, 1, 0, 100.0, *seed);
-    array[i] = fitness(res, seed, p.dim);
+    ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
+    float *res = dragonfly_compute(p, w, c, fitness, 1, 0, 100.0, *seed);
+    array[i] = fitness(res, seed, p.problem_dimensions);
     free(shifted_tmp);
     free(shifted_rotation);
     free(shifted_shift);
     free(res);
   }
-  float std=0.0, avg=0.0;
-  for(int i=0; i<N; i++){
-    avg+=array[i];
+  float std = 0.0, avg = 0.0;
+  for (int i = 0; i < N; i++) {
+    avg += array[i];
   }
-  avg/=N;
-  for(int i=0; i<N; i++){
-    std+=(array[i]-avg)*(array[i]-avg);
+  avg /= N;
+  for (int i = 0; i < N; i++) {
+    std += (array[i] - avg) * (array[i] - avg);
   }
-  std=sqrt(std/N);
+  std = sqrt(std / N);
   free(array);
   printf("avg: %f\n std %f", avg, std);
   return avg;
@@ -96,25 +98,24 @@ int main() {
   */
   srand(time(NULL));
   float best[14] = {
-      0.000000,
-0.000100,
+  0.000000,
+2.000000,
+0.000000,
+0.907037,
 0.000000,
 0.000100,
+0.216043,
+0.080545,
 0.000000,
-0.000100,
+0.100000,
+0.833333,
+0.336281,
 0.000000,
-1.251300,
-0.000000,
-0.000100,
-0.000000,
-0.000100,
-0.000000,
-0.000100
-
-  };
-  unsigned int seed =rand();
+0.244496
+};
+  unsigned int seed = rand();
   eval(best, &seed, 10);
-  //printf("starting: %f\n", best_fitness);
+  // printf("starting: %f\n", best_fitness);
   /*float cur[16];
   unsigned int seed = rand();
   while (true) {
