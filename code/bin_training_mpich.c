@@ -14,8 +14,8 @@ float eval(float *wi, unsigned int *seedi, unsigned int d) {
     if (wi[i] < 0.0) {
       wi[i] = 0.0;
     }
-    if (wi[i] > 2.0) {
-      wi[i] = 2.0;
+    if (wi[i] > 4.0) {
+      wi[i] = 4.0;
     }
     if (i % 2 == 0 && wi[i] == wi[i + 1]) {
       wi[i + 1] += 0.0001;
@@ -95,19 +95,19 @@ int main(int argc, char **argv) {
   ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
   float wi[14] = {
   0.000000,
-2.000000,
-0.000000,
-0.907037,
+0.000100,
+1.023072,
+1.628618,
 0.000000,
 0.000100,
-0.216043,
-0.080545,
+0.930669,
+1.020353,
 0.000000,
 0.100000,
-0.833333,
-0.336281,
 0.000000,
-0.244496
+0.000100,
+0.000000,
+0.000100
 };
   Weights w = {
       // exploring
