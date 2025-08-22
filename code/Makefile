@@ -2,14 +2,13 @@ CC=gcc
 CFLAGS=-Wall -Wextra -std=c11  -D_POSIX_C_SOURCE=200112L -ggdb3
 #-O3
 DLL=-lm 
-BINARIES= training_mpich.bin  training_parameters.bin mpich_2.bin
-#serial.bin mpich.bin
+BINARIES= training_mpich.bin  training_parameters.bin mpich.bin
 DUSE=-DUSE_MPI 
 #-DUSE_OPENMP
 
 all: $(BINARIES)
 
-serial.bin: bin_serial.c utils.c dragonfly-common.c
+serial.bin: bin_serial.c utils.c dragonfly-common.c 
 	$(CC) $(CFLAGS) -o $@ $^ $(DLL) 
 
 training_mpich.bin: bin_training_mpich.c utils.c dragonfly-common.c
