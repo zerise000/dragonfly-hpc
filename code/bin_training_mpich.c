@@ -93,11 +93,22 @@ int main(int argc, char **argv) {
   Fitness fitness = eval;
   Parameters p = parameter_parse(argc, argv);
   ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
-  float wi[14] = {0.000000, 2.000000, 0.000000, 0.000100, 0.000000,
-                  0.352596, 2.000000, 2.000000, 0.000000, 0.000100,
-                  0.600357, 0.000000, 0.000000, 0.000100
-
-  };
+  float wi[14] = {
+  0.000000,
+2.000000,
+0.000000,
+0.907037,
+0.000000,
+0.000100,
+0.216043,
+0.080545,
+0.000000,
+0.100000,
+0.833333,
+0.336281,
+0.000000,
+0.244496
+};
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},
