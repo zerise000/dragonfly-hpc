@@ -7,27 +7,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include<errno.h>
-int msleep(long msec)
-{
-    struct timespec ts;
-    int res;
-
-    if (msec < 0)
-    {
-        errno = EINVAL;
-        return -1;
-    }
-
-    ts.tv_sec = msec / 1000;
-    ts.tv_nsec = (msec % 1000) * 1000000;
-
-    do {
-        res = nanosleep(&ts, &ts);
-    } while (res && errno == EINTR);
-
-    return res;
-}
 
 float eval(float *wi, unsigned int *seedi, unsigned int d) {
   unsigned int seed = *seedi;
@@ -114,9 +93,9 @@ int main(int argc, char **argv) {
   Fitness fitness = eval;
   Parameters p = parameter_parse(argc, argv);
   ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
-  float wi[14] = {0.000000, 0.000100, 0.000000, 0.000100, 0.000000,
-                  0.000100, 0.000000, 1.251300, 0.000000, 0.000100,
-                  0.000000, 0.000100, 0.000000, 0.000100
+  float wi[14] = {0.000000, 2.000000, 0.000000, 0.000100, 0.000000,
+                  0.352596, 2.000000, 2.000000, 0.000000, 0.000100,
+                  0.600357, 0.000000, 0.000000, 0.000100
 
   };
   Weights w = {
@@ -130,8 +109,8 @@ int main(int argc, char **argv) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 2.0, 0);
-  //float *res = malloc(sizeof(float)*p.population_size); 
+  float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 2.0, start_time+rank);
+  // float *res = malloc(sizeof(float)*p.population_size);
   MPI_Barrier(MPI_COMM_WORLD);
 
   if (rank == 0) {

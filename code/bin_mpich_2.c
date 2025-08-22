@@ -21,19 +21,32 @@ int main(int argc, char *argv[]) {
 
   // set parameters
   Parameters p = parameter_parse(argc, argv);
-
+float wi[] = {
+  0.0f,
+  2.0f,
+  0.0f,
+  0.0001f,
+  0.0f,
+  0.352596f,
+  2.0f,
+  2.0f,
+  0.0f,
+  0.0001f,
+  0.600357f,
+  0.0f,
+  0.0f,
+  0.0001f
+};
   Weights w = {
       // exploring
-      .al = {0.1, 0.1},
-      .cl = {0.7, 0.7},
+      .al = {wi[0], wi[1]},
+      .cl = {wi[2], wi[3]},
       // swarming
-      .sl = {0.1, 0.1},
-      .fl = {1.0, 1.0},
-      .el = {0.0, 0.0},
-      .wl = {0.6, 0.6},
-      .ll = {0.1, 0.1},
-
-      // chuk size
+      .sl = {wi[4], wi[5]},
+      .fl = {wi[6], wi[7]},
+      .el = {wi[8], wi[9]},
+      .wl = {wi[10], wi[11]},
+      .ll = {wi[12], wi[13]},
   };
   ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
 
@@ -42,7 +55,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   Fitness fitness = rastrigin_fitness;
 
-  float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 100.0, 0);
+  float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 100.0, start_time);
 
   MPI_Barrier(MPI_COMM_WORLD);
   unsigned int s = 0;
