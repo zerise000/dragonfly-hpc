@@ -1,6 +1,7 @@
 #ifndef DA_COMMON
 #define DA_COMMON
 #include <math.h>
+#include <stdbool.h>
 #define MESSAGE_SIZE 16
 #define MAX_CHUNKS 4048
 
@@ -80,6 +81,16 @@ typedef struct {
 
   unsigned int n;
 } ComputationStatus;
+
+typedef struct {
+  unsigned int start;
+  unsigned int end;
+  bool to_shift_left;
+  bool to_shift_right;
+  bool complete;
+
+  ComputationStatus comp;
+} LogicalChunk;
 
 typedef struct {
   unsigned int population_size, starting_chunk_count, iterations,

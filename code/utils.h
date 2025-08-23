@@ -8,6 +8,10 @@
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 float *init_array(unsigned int dimensions, float range_max, unsigned int *seed);
 void sum_assign(float *dest, float *source, unsigned int size);
 void sub_assign(float *dest, float *source, unsigned int size);
@@ -29,6 +33,9 @@ void init_matrix(float *inp, float range_max, unsigned int dim, unsigned int *se
 void dragonfly_compute_step(Dragonfly *d, float *average_speed,
     float *cumulated_pos, float *food, float *enemy,
     unsigned int N, unsigned int NUM_THREADS);
-void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* best, float* best_fitness, unsigned int NUM_THREADS);
+void new_computation_accumulate(Dragonfly *d, 
+																LogicalChunk *current_chunk,
+                                unsigned int *seed,
+																unsigned int nr_threads);
 
 #endif

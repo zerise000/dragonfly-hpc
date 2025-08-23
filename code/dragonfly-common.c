@@ -18,7 +18,7 @@ Parameters parameter_parse(int argc, char *argv[]) {
   if (argc != 6) {
     fprintf(stderr, "invalid parameter count: expected population_size, "
                     "starting_chunk_count, iterations, problem_dimensions, "
-                    "threads_per_process");
+                    "threads_per_process\n");
     exit(-1);
   }
   p.population_size = atoi(argv[1]);
@@ -196,15 +196,7 @@ void Build_mpi_type_computation_status(MPI_Datatype *data) {
 
 // #endif
 
-typedef struct {
-  unsigned int start;
-  unsigned int end;
-  bool to_shift_left;
-  bool to_shift_right;
-  bool complete;
 
-  ComputationStatus comp;
-} LogicalChunk;
 
 unsigned int assing_logical_chunks(unsigned int phisical_chunk_start,
                                    unsigned int phisical_chunk_end,
@@ -293,56 +285,7 @@ void comunicate(LogicalChunk *cur, MPI_Datatype type,
   }
 }
 
-// TODO paralelize
-// TODO move to right place
-//  it computes the best, the food, the enemy, and the sums of speeds and
-//  positions of an interval. the interval must be inside the current thread
-//  chunk
-void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
-                                unsigned int *seed) {
 
-  unsigned start = max(current_chunk->start, d->start);
-  unsigned end = min(current_chunk->end, d->end);
-
-  unsigned dim = d->dim;
-  float *cumulated_pos = current_chunk->comp.cumulated_pos;
-  float *cumulated_speed = current_chunk->comp.cumulated_speeds;
-
-  zeroed(cumulated_pos, dim);
-  zeroed(cumulated_speed, dim);
-
-  float next_enemy_fitness = d->fitness(d->positions, &d->seed, dim);
-  float next_food_fitness = next_enemy_fitness;
-  // status->n = d->local_n;
-
-  unsigned int indexes[2] = {0, 0};
-  end = end - d->start;
-  for (unsigned int k = start - d->start; k < end; k++) {
-    float *iter_pos = d->positions + dim * k;
-    float *iter_speed = d->speeds + dim * k;
-    sum_assign(cumulated_pos, iter_pos, dim);
-    sum_assign(cumulated_speed, iter_speed, dim);
-
-    float fitness = d->fitness(iter_pos, seed, dim);
-
-    if (fitness > next_food_fitness) {
-      indexes[0] = k;
-      next_food_fitness = fitness;
-    }
-    if (fitness < next_enemy_fitness) {
-      indexes[1] = k;
-      next_enemy_fitness = fitness;
-    }
-  }
-
-  memcpy(current_chunk->comp.next_food, d->positions + indexes[0] * dim,
-         sizeof(float) * dim);
-  memcpy(current_chunk->comp.next_enemy, d->positions + indexes[1] * dim,
-         sizeof(float) * dim);
-  current_chunk->comp.next_enemy_fitness = next_enemy_fitness;
-  current_chunk->comp.next_food_fitness = next_food_fitness;
-  current_chunk->comp.n = end - (start - d->start);
-}
 
 void inner_dragonfly_step(Dragonfly *d, LogicalChunk chunk,
                           unsigned int random_seed) {
@@ -474,7 +417,7 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
     //  1) accumulate
     for (unsigned int j = 0; j < n_local_chunks; j++) {
       // TODO paralelization opportunity if handling correctly random seed
-      new_computation_accumulate(&cur, &local_chunks[j], &cur.seed);
+      new_computation_accumulate(&cur, &local_chunks[j], &cur.seed,threads);
     }
     if (threads > 1) {
 
@@ -612,13 +555,4 @@ void update_chunk_size(ChunkSize *c) {
                     (float)c->current_step / (float)c->total_steps) *
                (float)c->start_count;
   c->count = (unsigned int)(round(temp));
-}
-void update_status(ComputationStatus* status,Dragonfly* d,float* best,float* best_fitness,unsigned int* indexes,unsigned int dim){
-		memcpy(status->next_food, d->positions + dim*indexes[0], sizeof(float) * dim);
-		memcpy(status->next_enemy, d->positions + dim*indexes[1], sizeof(float) * dim);
-		memcpy(best, d->positions + dim*indexes[2], sizeof(float) * dim);
-
-		status->next_food_fitness = d->fitness(status->next_food,&d->seed,dim);
-		status->next_enemy_fitness = d->fitness(status->next_enemy,&d->seed,dim);
-		*best_fitness = d->fitness(best,&d->seed,dim);
 }
