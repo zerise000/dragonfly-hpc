@@ -62,35 +62,60 @@
 \begin{multicols}{2}[
   \fontsize{9}{9}
   \section*{Abstract}
-  \textbf{Dragonfly algorithm is a new kind of approach used to solve optimization problems through the emulation of dragonflies movements, but it lacks scalability. In this paper the authors try to set up an approach based on parallelization thanks to the use of API for high performance computing like MPI and OpenMP, then there will be a comparison of execution times between presented implementation and the classic approach based on serial programming, in order to see if parallelization could lead to a performance improvement and possible future extensions.}\newline]
+  \textbf{
+    Dragonfly algorithm is an approach used to solve optimization problems through the emulation of dragonflies movements, but it lacks scalability.
+  In this paper the authors propose an approach based on parallelization using dedicated libraries for high performance multiprocess applications like MPI, and OpenMP API for multithread parallelization.
+  A comparison of execution times is then conducted between presented implementation and the classic approach based on serial programming,
+  to determine whether parallelization leads to performance improvements and enables possible future extensions.
+  }\newline]
 
 \section{Introduction}
+Swarm intelligence algorithms are inspired by the collective behavior of biological systems, where simple rules followed by individuals lead to the emergence of complex and adaptive group behavior. The concept was first introduced in Reynolds' Boids model (1987) \cite{TODO}, which simulated flocking behavior, and gained significant traction in Computer Science with the Ant Colony Optimization algorithm (1995) \cite{TODO}.
+These algorithms are meta-heuristic in nature, leveraging decentralized and parallel exploration-exploitation strategies to solve optimization problems.
 
-Recent years have seen the raise and evolution of swarm intelligent algorithms, based on meta-heuristic approach where single individuals of a complex population follow an exploration-exploitation methodology to find the best solution in their local search space;
-each member of the group work independently from the others, leading to a subdivision of the labour which decrease the overall amount of execution time, working as decentralized and parallel units; but also, due to the fact that they mimic the behaviour of biological life forms, it is possible then that they could generate random patterns through the interaction with each other. 
-The dragonfly algorithm has been proposed for the first time in 2016, and its purpose is to simulate the behaviour of a dragonfly population according to the principles of swarm intelligent algorihms seen previously.
-It has gained more and more popularity: it is in estimated that during 2019 more than 300 scientific papers cited the algorithm \cite{DASurvey}, due to the fact that it has demonstrated some characteristics similar to other algoritms of the same kind, however in contrast with other swarm intelligent algorithms however it present less probability to be trapped into a local optima \cite{DAReview}.
-This paper aims to define a new approach based on popular parallel APIs, and also trying to understand if parallelization could lead to a significant speed up in performances that can be considered by future researches on this algorithm 
+The dragonfly algorithm, first proposed in 2014 and published in 2015 \cite{DAReview}, is a bio-inspired optimization algorithm that simulates the behavior of dragonfly swarms.
+By mimicking natural behaviors such as alignment, separation, cohesion, attraction to food sources, and distraction from enemies, the algorithm achieves a balance between exploration and exploitation.
+This makes it particularly effective at navigating complex search spaces while reducing the likelihood of being trapped in local optima.
+As of 2019, the algorithm has been cited in over 300 scientific papers, highlighting its impact and popularity in the field.
+
+This paper focuses on parallelizing the dragonfly algorithm to improve its scalability and performance. Using popular parallel APIs such as OpenMP for multithreading and MPI for distributed memory systems, we aim to demonstrate how parallelization can significantly reduce execution time while maintaining the algorithm's effectiveness. The results of this study could pave the way for future research and applications of the dragonfly algorithm in high-performance computing environments.
 
 \subsection*{How the algorithm works}
-The execution begins with the initialization of some arrays which are the position $P$ of all dragonfiles and the `step` vector $\Delta P$ representing the velocities of each single individual,the position of source foods $F$ and the position of enemies $E$;
-then the algorithm executes an iteration loop where, for each dragonfly, we calculate some coefficient that will be used to update the internal state of the program.
-This procedure is simulated through the observation of repetitive patterns observed in the behaviour of dragonflies, which are:
-
-
+The execution of the dragonfly algorithm begins with the initialization of several arrays: the position vector $P$ representing the positions of all dragonflies, the step vector $\Delta P$ representing their velocities, the position of food sources $F$, and the position of enemies $E$. The algorithm then enters an iterative loop where, for each dragonfly, coefficients are calculated to update its internal state. These coefficients are derived from the observed behaviors of dragonflies in nature, which include:
 
 \begin{itemize}
-  \item Alignment of their velocity with other members of the same group, given by the formula  $A_i = \frac{\sum^M_{j=1}V_j}{M}$, where $V_j$ is the velocity of the j-th neighbour
+  \item \textbf{Alignment}: The tendency to match the velocity of neighboring dragonflies, calculated as:
+  $$A_i = \frac{\sum_{j=1}^M V_j}{M},$$
+  where $V_j$ is the velocity of the $j$-th neighbor and $M$ is the number of neighbors.
 
-  \item Separation of single members in order to avoid collision, and it is retrieved by the equation  $S_i = - \sum^M_{j=1}{P - P_j}$, where $P_j$ is the position of the j-th neighbour and $P$ the current individual position.
-    
-  \item Cohesion towards the center of the group, given by $C_i = \frac{\sum^M_{j=1}P_j}{M} - P$ 
-  \item Attraction to a common source food, expressed by the formula $ F_i = F^+ - P$, where $F^+$ is the position of the current prey and $P$ is the position of the current dragonfly
-  \item Distraction of enemies, represented by the equation $ E_i = E^- + P$ where $E^-$ is the position of the current enemy 
+  \item \textbf{Separation}: The tendency to avoid collisions with other dragonflies, given by:
+  $$S_i = -\sum_{j=1}^M (P - P_j),$$
+  where $P_j$ is the position of the $j$-th neighbor and $P$ is the current dragonfly's position.
+
+  \item \textbf{Cohesion}: The tendency to move toward the center of the group, expressed as:
+  $$C_i = \frac{\sum_{j=1}^M P_j}{M} - P.$$
+
+  \item \textbf{Attraction to food}: The tendency to move toward a food source, represented by:
+  $$F_i = F^+ - P,$$
+  where $F^+$ is the position of the food source.
+
+  \item \textbf{Distraction from enemies}: The tendency to move away from enemies, modeled as:
+  $$E_i = E^- + P,$$
+  where $E^-$ is the position of the enemy.
 \end{itemize}
 
-\noindent Once all the parameters have been calculated we can now update the current step vector of each dragonfly using the following equation: $$\Delta P^{t+1}_{i} = (sS_i + aA_i + fF_i + cC_i) + \omega\Delta P^t_i$$ where $s,a,f,c$ are respectevly the separation weight, the alignment weight, the attraction weight, the cohesion weight and $\omega$ is the inertia weight, all of them are randomly chosen in the interval $[0,1]$. When all step vectors have been updated we can now set the new position of the dragonflies using this equation, which takes the new step vector as an input: $$P^{t+1}_{i} = P_i^t + \Delta P_{i}^{t+1}$$However if there is a dragonfly which does not have any neighbour then we assume that the overall population moves in a random way: the most common method to do that is to use a random walk function. The previous formula then must be modified into this one here: $$P^{t+1}_i = P_i^t + Levy(d)$$ where $d$ is the dimension of the position vector, and $Levy(d)$ is the Levy flight function, which is calculated in this way: $$Levy(d) = 0.01\times\frac{r_1 \times \sigma}{|r_2|^{\frac{1}{\beta}}}$$ where $r1$ and $r2$ are two random numbers uniformally distributed in the interval $[0,1]$, and $\sigma$ is a vector calculated using the following formula: $$\sigma = \frac{sin(\frac{\beta\pi}{2})\times\Gamma(1+\beta)}{\Gamma(\frac{\beta+1}{2})\times \beta \times 2^{(\beta-1)/2}}$$ where $\Gamma(x)$ is the gamma function \cite{WikiGamma}, and $\beta$ is a constant.Another valid approach is to apply, instead of Levy flight, the brownian motion model, used especially in gas and particle analysis: this seems to return better performances \cite{BDragonfly}. 
+\noindent Once these coefficients are calculated, the step vector $\Delta P$ for each dragonfly is updated using the formula:
+$$\Delta P_i^{t+1} = sS_i + aA_i + fF_i + cC_i + \omega \Delta P_i^t,$$
+where $s$, $a$, $f$, $c$, and $\omega$ are weights for separation, alignment, attraction, cohesion, and inertia, respectively. These weights are randomly chosen within the interval $[0,1]$. The new position of each dragonfly is then computed as:
+$$P_i^{t+1} = P_i^t + \Delta P_i^{t+1}.$$
 
+If a dragonfly has no neighbors, it is assumed to move randomly. This is modeled using a random walk function, often implemented as a Lévy flight:
+$$P_i^{t+1} = P_i^t + \mathrm{Levy}(d),$$
+where $d$ is the dimension of the position vector. The Lévy flight function is defined as:
+$$\mathrm{Levy}(d) = 0.01 \times \frac{r_1 \times \sigma}{|r_2|^{1/\beta}},$$
+where $r_1$ and $r_2$ are random numbers uniformly distributed in $[0,1]$, and $\sigma$ is calculated as:
+$$\sigma = \frac{\sin\left(\frac{\beta \pi}{2}\right) \Gamma(1+\beta)}{\Gamma\left(\frac{\beta+1}{2}\right) \beta 2^{(\beta-1)/2}},$$
+with $\Gamma(x)$ being the gamma function and $\beta$ a constant. Alternatively, Brownian motion can be used instead of Lévy flight, which has shown better performance in some cases \cite{BDragonfly}.
 
 
 

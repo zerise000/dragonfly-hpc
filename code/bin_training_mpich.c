@@ -93,22 +93,9 @@ int main(int argc, char **argv) {
   Fitness fitness = eval;
   Parameters p = parameter_parse(argc, argv);
   ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
-  float wi[14] = {
-  0.000000,
-0.000100,
-1.023072,
-1.628618,
-0.000000,
-0.000100,
-0.930669,
-1.020353,
-0.000000,
-0.100000,
-0.000000,
-0.000100,
-0.000000,
-0.000100
-};
+  float wi[14] = {0.000000, 0.000100, 1.023072, 1.628618, 0.000000,
+                  0.000100, 0.930669, 1.020353, 0.000000, 0.100000,
+                  0.000000, 0.000100, 0.000000, 0.000100};
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},
@@ -120,7 +107,8 @@ int main(int argc, char **argv) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 2.0, start_time+rank);
+  float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 2.0,
+                                 start_time + rank);
   // float *res = malloc(sizeof(float)*p.population_size);
   MPI_Barrier(MPI_COMM_WORLD);
 

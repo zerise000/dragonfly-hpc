@@ -1,17 +1,9 @@
 \begin{thebibliography}{1}
 
-\bibitem{DASurvey}
-Chnoor M. Rahman Tarik A. Rashid Abeer Alsadoon Nebojsa Bacanin Polla Fattah~Seyedali Mirjalil.
-\newblock A survey on dragonfly algorithm and its applications in engineering.
-\newblock {\em Evolutionary Intelligence}, 2021.
-
 \bibitem{DAReview}
 Yassine Meraihi Amar Ramdane-Cherif Dalila Acheli~Mohammed Mahseur.
 \newblock Dragonfly algorithm: a comprehensive review and applications.
 \newblock {\em Neural Computing and Applications}, 2020.
-
-\bibitem{WikiGamma}
-\url{https://en.wikipedia.org/wiki/Gamma_function}.
 
 \bibitem{BDragonfly}
 Hakan~Gülcan Çiğdem~İnan Acı.
