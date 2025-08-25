@@ -640,63 +640,43 @@ void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
 								end,dim);
 		return ; 
 	}
-#pragma omp parallel num_threads(nr_threads) schedule(runtime) 
+#pragma omp parallel num_threads(nr_threads)
 	{
 		unsigned int thread_id = omp_get_thread_num();
 		unsigned int thread_start = max(start,start+(thread_id*elems_per_thread));
 		unsigned int thread_end = min(thread_start + elems_per_thread,end);
 
-	  unsigned int local_indexes[2]; 
-		float local_fitnesses[2];
-		float local_cumulated_pos[dim];
-		float local_cumulated_speed[dim];
+		unsigned int local_seed = (*seed) * (thread_id+1);
 
-		local_fitnesses[0] = next_food_fitness;
-		local_fitnesses[1] = next_enemy_fitness;
-		unsigned int local_seed = (*seed) + thread_id;
+		zeroed(thread_cumulated_pos[thread_id],dim);
+		zeroed(thread_cumulated_speed[thread_id],dim);
 
-		local_indexes[0] = thread_start;
-		local_indexes[1] = thread_start;
+		thread_indexes[thread_id][0] = thread_start;
+		thread_indexes[thread_id][1] = thread_start;
 
-		zeroed(local_cumulated_pos,dim);
-		zeroed(local_cumulated_speed,dim);
-
-		float positions[elems_per_thread][dim];
-		float speeds[elems_per_thread][dim];
-
-		for(unsigned int i=0; i<elems_per_thread; i++){
-			for(unsigned int j=0; j<dim; j++){
-				memcpy(positions[i],d->positions + i*dim + j,dim*sizeof(float));
-				memcpy(speeds[i],d->speeds + i*dim + j,dim*sizeof(float));
-			}
-		}
+		thread_fitnesses[thread_id][0] = next_food_fitness;
+		thread_fitnesses[thread_id][1] = next_enemy_fitness;
 
 		for (unsigned int k = thread_start; k < thread_end; k++) {
-			float *iter_pos = positions[k];
-			float *iter_speed = speeds[k];
+			float *iter_pos = d->positions + dim*k;
+			float *iter_speed = d->speeds + dim*k;
 
 			for(unsigned int i=0; i<dim; i++){
-				local_cumulated_pos[i] += iter_pos[i];
-				local_cumulated_speed[i] += iter_speed[i];
+				thread_cumulated_pos[thread_id][i] += iter_pos[i];
+				thread_cumulated_speed[thread_id][i] += iter_speed[i];
 			}
 
 			float fitness = d->fitness(iter_pos,&local_seed, dim);
 
-			if (fitness > local_fitnesses[0]) {
-				local_indexes[0] = k;
-				local_fitnesses[0] = fitness;
+			if (fitness > thread_fitnesses[thread_id][0]) {
+				thread_indexes[thread_id][0] = k;
+				thread_fitnesses[thread_id][0] = fitness;
 			}
-			if (fitness < local_fitnesses[1]) {
-				local_indexes[1] = k;
-				local_fitnesses[1] = fitness;
+			if (fitness < thread_fitnesses[thread_id][1]) {
+				thread_indexes[thread_id][1] = k;
+				thread_fitnesses[thread_id][1] = fitness;
 			}
 		}
-
-		memcpy(thread_indexes[thread_id],local_indexes,2*sizeof(unsigned int));
-		memcpy(thread_fitnesses[thread_id],local_fitnesses,2*sizeof(float));
-
-		memcpy(thread_cumulated_pos[thread_id],local_cumulated_pos,dim*sizeof(float));
-		memcpy(thread_cumulated_speed[thread_id],local_cumulated_speed,dim*sizeof(float));
 	}
 
 	for(unsigned int i=0; i<nr_threads; i++){
