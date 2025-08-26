@@ -648,35 +648,40 @@ void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
 
 		unsigned int local_seed = (*seed) * (thread_id+1);
 
-		zeroed(thread_cumulated_pos[thread_id],dim);
-		zeroed(thread_cumulated_speed[thread_id],dim);
+		unsigned int local_indexes[2] = {thread_start,thread_start};
+		float local_fitnesses[2] = {next_food_fitness,next_enemy_fitness};
+		float local_cumulated_pos[dim];
+		float local_cumulated_speed[dim];
 
-		thread_indexes[thread_id][0] = thread_start;
-		thread_indexes[thread_id][1] = thread_start;
-
-		thread_fitnesses[thread_id][0] = next_food_fitness;
-		thread_fitnesses[thread_id][1] = next_enemy_fitness;
-
+		zeroed(local_cumulated_pos,dim);
+		zeroed(local_cumulated_speed,dim);
+#pragma omp for
 		for (unsigned int k = thread_start; k < thread_end; k++) {
 			float *iter_pos = d->positions + dim*k;
 			float *iter_speed = d->speeds + dim*k;
 
 			for(unsigned int i=0; i<dim; i++){
-				thread_cumulated_pos[thread_id][i] += iter_pos[i];
-				thread_cumulated_speed[thread_id][i] += iter_speed[i];
+				local_cumulated_pos[i] += iter_pos[i];
+				local_cumulated_speed[i] += iter_speed[i];
 			}
 
 			float fitness = d->fitness(iter_pos,&local_seed, dim);
 
-			if (fitness > thread_fitnesses[thread_id][0]) {
-				thread_indexes[thread_id][0] = k;
-				thread_fitnesses[thread_id][0] = fitness;
+			if (fitness > local_fitnesses[0]) {
+				local_indexes[0] = k;
+				local_fitnesses[0] = fitness;
 			}
-			if (fitness < thread_fitnesses[thread_id][1]) {
-				thread_indexes[thread_id][1] = k;
-				thread_fitnesses[thread_id][1] = fitness;
+			if (fitness < local_fitnesses[1]) {
+				local_indexes[1] = k;
+				local_fitnesses[1] = fitness;
 			}
 		}
+
+		memcpy(thread_cumulated_pos[thread_id],local_cumulated_pos,dim*sizeof(float));
+		memcpy(thread_cumulated_speed[thread_id],local_cumulated_speed,dim*sizeof(float));
+
+		memcpy(thread_indexes[thread_id],local_indexes,2*sizeof(unsigned int));
+		memcpy(thread_fitnesses[thread_id],local_fitnesses,2*sizeof(float));
 	}
 
 	for(unsigned int i=0; i<nr_threads; i++){
@@ -695,17 +700,16 @@ void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
 			next_enemy_fitness = thread_fitnesses[i][1];
 		}
 	}
-	
+
 	if(rest>0){
 		unsigned int rest_start = nr_threads*elems_per_thread+start;
 		unsigned int rest_seed = (*seed)+rest_start;
-	
+
 		inner_computation_accumulate(d,rest_start,end,
 																	cumulated_pos,cumulated_speed,
 																	&next_food_fitness,&next_enemy_fitness,
 																	indexes,dim,&rest_seed);
 	}
-	
 	update_status(d,current_chunk,
 								next_food_fitness,
 								next_enemy_fitness,
