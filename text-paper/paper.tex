@@ -120,10 +120,7 @@ with $\Gamma(x)$ being the gamma function and $\beta$ a constant. Alternatively,
 
 
 \section{General approach}
-
-Now that we have seen the overall procedure it is possible to write a naive implementation of the algorithm in order to 
-have a base for further developments. An example of the implementation can be observed in the following code snippet:
-
+With the overall procedure outlined, we can now present a naive implementation of the dragonfly algorithm. This initial implementation serves as a foundational baseline for further optimization and parallelization. The following code snippet illustrates the core structure of the algorithm:
 
 \begin{lstlisting}[language=C,caption={first implementation of the dragonfly algorithm}]
 void dragonfly_algorithm(Dragonfly *d, 
@@ -174,99 +171,134 @@ void dragonfly_algorithm(Dragonfly *d,
 }
 \end{lstlisting}
 
-\noindent After the initialization of velocities and positions of agents,
-which will be represented by two separated matricies with the same dimension equal to the number of members of our
-population times the dimension of our problem, the algorithm starts to execute a for loop 
-with a fixed amount of iteration stored in the variable $d\rightarrow N$,  retrieve
-the position and the velocity of the current dragonfly, represented by pointers
-\textit{cur\_pos} and \textit{cur\_speed},
-and the cumulated coordinates of its neighbours. 
-The execution then proceed with the following steps:
+\noindent After initializing the velocities and positions of agents,
+represented by two separate matrices with dimensions equal to the number of agents in the population times the problem's dimensionality, the algorithm begins its main execution loop.
+This loop runs for a fixed number of iterations, stored in the variable $d\rightarrow N$.
+During each iteration, the algorithm retrieves the position and velocity of the current dragonfly, represented by the pointers \textit{cur\_pos} and \textit{cur\_speed}, along with the cumulated coordinates of its neighbors.
+The execution proceeds with the following steps:
 
 \begin{itemize}
-  \item retrieve current speed and position of the j-th dragonfly
-  \item compute separation, alignment, cohesion, food attraction and enemy distraction vectors,
-  stored into local variables named with their abrreviations
-  \item calculate product between weigths and and the single coordinates of the velocity array
-  \item update speed and position the dragonfly considering also brownian motion
+  \item Retrieve the current speed and position of the $j$-th dragonfly.
+  \item Compute the separation, alignment, cohesion, food attraction, and enemy distraction vectors, storing them in local variables with their respective abbreviations.
+  \item Calculate the product of the weights and the individual coordinates of the velocity array.
+  \item Update the speed and position of the dragonfly, incorporating Brownian motion.
 \end{itemize}
 
-\noindent Notice how the computation
-of velocities and speed coordinates is compacted into the same \textbf{for} loop;
-this allows to reduce time execution, because the overall calculation is made locally
-all in the same place, leaving out the necessity of using auxiliary arrays for the coefficients.
-The reason why we divide the separation coefficient for the number of neighbours 
-will be explained later in this paper
-
-\subsection*{chunks}
-
-As anticipated earlier dragonfly algorithm, as many other swarm optimization solutions,
-has a good chance to be stuck into a local minima, without the possibility to find better
-candidates. We can avoid this and improve this approach introducing groupments of dragonflies into chunks, 
-calculating local minima of different areas and compare them in order
-to get as close as possible to the global solution.  
-
-\begin{figure}[H]
-  \includegraphics[scale=0.3]{img/chunks.png}
-  \centering
-  \caption{illustration of communication between chunks}
-\end{figure}
-
-\noindent The implementation of this process is quite simple: each chunk will contain a subset
-of components of the global population that will specialize to compute the point with the best local
-fitness for both enemies and food of that specific region, then the local status will be communicated
-to all other chunks, updating in this way the global status of the program thanks to the update of positions,
-and the local configuration of each region; the algorithm ends displaying the best fitness found
-during the execution.
-
+\noindent Notice that the computation of velocities and position updates is compacted into the same \textbf{for} loop.
+This optimization reduces execution time by performing all calculations locally within the loop, eliminating the need for auxiliary arrays to store intermediate coefficients.
+The rationale for dividing the separation coefficient by the number of neighbors will be explained later in this paper (TODO reference).
 
 \section{Critical analysis of the coefficients}
-From this implementation we discovered some critical points that should be improved:
+During our implementation we discovered some ambiguities in the original paper:
 \begin{itemize}
-  \item In the original paper\cite{Original} and in the algorithm often uses the therm neighbours without giving a precise definition.
-  Assuming a general distance metric (eg Euclidean Distance), could be an option, but later in the paper it describes how the alghorithm runs in linear time with respect to the number of dragonflies and the iteration count.
-  This would be false in case of euclidean distance, because in order to define for each butterfly the neighbours, we should calculate the distance between each pair of dragonflies, which would lead to a time complexity of $O(N^2)$.
-  Maybe using some complex geospatial algorithms it could be possible to archive that, but we doubt this was the original intention of the authors.
-  Later in the paper also another crithical problem in respect to other algorithm was the premature convergence. So we decided to divide the population in chunks, and progressively merge chunks until we will remain with only one.
-  So in this way we addressed both problems.
-  \item In order to be a solid algorithm it must be garanteed that does not exist some values that would make the solution diverge.
-  As a first approach we introduced a max\_speed\ parameter that would change over time and would assure stability. 
-  But given that in the original paper it was not described we omitted from later implementations.
-  This lead to instabilities from the enemy coefficient (if bigger than 0.5), but mainly from the separation coefficient.
-  This is a problem, because we could be see the coefficient as n times the distance between the dragonfly and the average position of the population. For example if the distance is 0.001, 
-  but there are 1000 dragonflies in the neighbourhood, then the coefficient would be 1, at the very next iteration the dragonflies would have a distance of 1 from the center and so on, causing an exponential growth.
-  In order to fix this we modify the separation formula as: $S_i = - \frac{\sum^M_{j=1}{P - P_j}}{M}$.
+  \item In the original paper \cite{Original}, the term "neighbors" is used frequently without providing a precise definition.
+  While a general distance metric, such as Euclidean distance, could be assumed, the paper also claims that the algorithm runs in linear time with respect to the number of dragonflies and the iteration count.
+  This claim would not hold if Euclidean distance were used, as calculating the distance between each pair of dragonflies would result in a time complexity of $O(N^2)$. 
 
-  \item  The enemy coefficient does not represent what the author describes. The sum of vectors does not necessarily point outwards in respect to the enemy (eg with aligned pos vectors). 
-  We assumed a typo, but even the difference of the vectors would not be enough, because if the enemy is too close to the dragonfly, the difference would get smaller and not bigger.
-  A possible solution would be to normalize the difference vector with the inverse of the vector length, but the formulation would have been to different from the original one. So we decided to keep the original formulation and see if it actualy would do something.
+  A possible solution to achieve linear time complexity might involve using advanced geospatial algorithms, but we doubt this was the original intention of the authors.
+  To address this ambiguity, we decided to divide the population into chunks and progressively merge these chunks until only one remains (as detailed in Section \ref{chunks}).
+  This approach not only resolves the issue of defining neighbors but also mitigates the problem of premature convergence, which is common in swarm optimization algorithms.
+
+  \item For the algorithm to be robust, it must ensure that no parameter values lead to divergence.
+  As an initial solution, we introduced a \texttt{max\_speed} parameter that changes over time to ensure stability.
+  However, since this parameter was not described in the original paper, we omitted it in later implementations. 
+
+  This omission led to instabilities, particularly with the enemy coefficient (if it exceeded 0.5) and the separation coefficient.
+  For example, the separation coefficient could cause exponential growth: if the distance between a dragonfly and the average position of the population is very small (e.g., 0.001) but there are many dragonflies in the neighborhood (e.g., 1000), the coefficient would become large (e.g., 1).
+  In the next iteration, the dragonflies would move far from the center, causing the distance to grow exponentially.
+
+  To address this, we modified the separation formula as follows:
+  $$S_i = - \frac{\sum_{j=1}^M (P - P_j)}{M},$$
+  where $M$ is the number of neighbors.
+  This normalization ensures that the separation coefficient remains stable regardless of the number of neighbors.
+
+  \item The enemy coefficient, as described in the original paper, does not behave as intended.
+  Specifically, the sum of vectors does not necessarily point outward from the enemy (e.g., when position vectors are aligned).
+  We assumed this was a typo, but even using the difference of vectors would not suffice.
+  If the enemy is too close to the dragonfly, the difference vector would become smaller instead of larger, leading to incorrect behavior.
+
+  A potential solution would be to normalize the difference vector by its length (i.e., use the inverse of the vector length).
+  However, this formulation would deviate significantly from the original paper.
+  As a result, we decided to retain the original formulation and evaluate its behavior empirically.
+
 \end{itemize}
+
+
+\subsection*{Chunk-based Optimization}
+\label{chunks}
+As mentioned earlier, the dragonfly algorithm, like many other swarm optimization solutions, has a high chance of getting stuck in local minima, limiting its ability to find better candidates.
+One common approach to mitigate this issue in swarm algorithms is to avoid relying solely on Euclidean distance for neighborhood calculations.
+Instead, the population can be divided into random groups, which are progressively merged over time until only one group remains.
+This strategy allows for greater exploration in the early stages and focuses on exploitation as the algorithm converges.
+
+In order to do that, and efficently, we divided the search space into chunks, with each thread processing an equal number of chunks.
+Every $x$ iterations, these chunks are merged into larger logical chunks, each containing a power of 2 smaller chunks.
+These logical chunks act as neighborhoods for the dragonflies. 
+
+To share the contributions of each chunk, we used a modified butterfly algorithm where the contributions from all elements in a chunk is shared across all the relevant threads.
+As an optimization, if a chunk is entirely contained within a single thread, the contributions are shared locally without inter-thread communication. 
+
+Figure \ref{fig:chunks} illustrates the communication process.
+The circles represent different chunks, and the colors represent logical chunks.
+The blue arrows indicate communication within a process, while the red arrows represent communication across processes.
+
+\begin{figure}[H]
+  \includegraphics[scale=0.21]{img/chunks.png}
+  \centering
+  \caption{Illustration of communication between chunks.}
+  \label{fig:chunks}
+\end{figure}
+
+\subsection*{Chunk-based Optimization Version 2}
+
+To improve the previous algorithm, we simplified the chunk structure by removing the first chunk block abstraction.
+This modification ensures that there is only one type of chunk, eliminating an unnecessary layer of abstraction, and decreasing the risk of off by one error.
+In Figure~\ref{fig:chunks}, the circles now represent butterflies, and the colors correspond to logical chunks.
+
+Additionally, we modified the communication algorithm to address a limitation of the butterfly algorithm, which requires the number of participating threads to be a power of two.
+To overcome this constraint, we implemented a two-step approach: first, contributions are accumulated into a single element, and then the result is shared with all participating processes.
+This approach ensures compatibility with any number of threads while maintaining efficient communication.
+
+
+
 
 
 \section{Parallelization with MPI}
 
-OpenMPI is a library that enables code execution on multiple cores, wheter they belong
-to the same CPU or not; it can be useful in case of performace improvement of those algorihms
-that require to solve complex tasks, just like the dragonfly algorithm: in fact this library can be easily 
-adapted to the illustrated implementation in order to boost performance.
+The Message Passing Interface (MPI) is a portable message-passing standard designed to function on parallel computing architectures.
+For our implementation it is usefull because it let us to express multiprocess comunication across multiple machines.
 
 \subsection*{MPI on chunks}
-As we said earlier chunks are independent from each otherm but usually they need to comunicate
-with their neighbours in order to keep updated the global status of the program execution. 
-It is possible to run chunks groups simoultaneously, using MPI builtin function to connect 
-the processes.  The instructions computed by each process are available in a custom function
-called \textit{dragonfly-compute}; after calculating the ID of the initial and final chunks
-and initializing message structures using the \textbf{offsetof} macro
-the function will execute the update loop that calculates the new velocities and positions 
-of the dragonfly for each chunk associated. To do this we first need to update the current
-location of enemies and food present in the chunk using the function \textbf{computation\_status\_merge},
-using the position of food and enemies of other chunks retrieved by the function \textbf{message\_broadcast};
-finally the process will proceed to update current position and velocities of dragonfiles using 
-the function \textbf{dragonfly\_compute\_step} illustrated earlier
+By far the biggest challenge in the parallelization with MPI was the comunication of the chunks partial computations (given that a chunk may or may not span multiple process).
+Mpi has an atomic function called $sendrecv$, that permits to send a message from a thread while receving from (possibly) another thread.
+This is super useful, but it could have caused deadlocks if every process has to comunicate with multiple chunks.
+So in order to use that we needed to ensure that each process is responsible of the accumulation of one chunk.
+We did this by ensuring that if a chunk starts in another process, and ends in this one, the process comunicate its contribute to the left process. Then the accumulation is performed and the result is shared back to the current block.
 
-\subsection*{MPI and parameters}
-Since MPI has been useful in the parallelization of the chunks then it can also become useful in
-the training of parameters.
+\begin{figure}[H]
+  \includegraphics[scale=0.25]{img/MPI.png}
+  \centering
+  \caption{Illustration of communication between processes}
+  \label{fig:MPI}
+\end{figure}
+
+The algorithm is divided in steps (isolated by an MPI barrier):
+\begin{itemize}
+  \item \textbf{Send left}: first, the process that have the end of a block, share theyr contribute to the left
+  \item \textbf{Accumulate and share} Then it is accumulated in the first process and broadcasted back to all partecipating processes
+  \item \textbf{Send right} Then the rightmost process in the block receives the accumulated value from the left.
+\end{itemize}
+
+In this way the comunication is efficient, and looking at the results it scales very wheel. More on that in section \ref{results}.
+
+
+\subsection*{MPI and training}
+Since the parallelization with MPI is highly efficient, it becomes feasible to refine the hyperparameters of small problem instances by scaling the computation across hundreds of cores.
+In the results section, we demonstrate how the hyperparameters for smaller instances of the dragonfly algorithm were trained on a shifted and rotated Rastrigin function, which is commonly used as a benchmark for optimization algorithms.
+
+The learned hyperparameters were then fed back into the algorithm to enhance its performance.
+This iterative process was repeated twice, allowing the algorithm to progressively improve its ability to navigate complex search spaces.
+By leveraging the scalability of MPI, we were able to significantly reduce the time required for hyperparameter tuning while maintaining the accuracy of the results.
 
 \section{OpenMP implementation}
 
@@ -393,6 +425,7 @@ number of cores, giving the following formula: $$E = \frac{Speedup}{p}$$
 also in this case the efficiency decrease due to the increase of the number of cores. In case
 of linear speedup we get that the efficiency is equal to the inverse of $p$
 \subsection*{results}
+\label{results}
 Now it is possible to show results obtained from the cluster,
 using the configuration with 4 cores and 1 thread will be considered
 equal as the serial time
