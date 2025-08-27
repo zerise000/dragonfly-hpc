@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex paper"] 1756229670.0168 "paper.aux" "paper.bbl" "paper" 1756229717.37609 0
+["bibtex paper"] 0 "paper.aux" "paper.bbl" "paper" 1756282308.4519 -1
   "./references.bib" 1756027297.52376 1134 cccfd44f3cd772e542ee52e95ae5d749 ""
   "/usr/share/texmf-dist/bibtex/bst/base/unsrt.bst" 1742685315 18030 1376b4b231b50c66211e47e42eda2875 ""
-  "paper.aux" 1756229717.18748 2053 94b74bec0656420936cd87ffd89c8099 "pdflatex"
+  "paper.aux" 1756282308.08383 2053 94b74bec0656420936cd87ffd89c8099 "pdflatex"
   (generated)
   "paper.bbl"
   "paper.blg"
   (rewritten before read)
-["pdflatex"] 1756229716.82158 "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" "paper.pdf" "paper" 1756229717.37629 0
-  "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" 1756229716.63415 26852 20347012335f1f43af091dbd2b1b1d0a ""
+["pdflatex"] 1756282307.00026 "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" "paper.pdf" "paper" 1756282308.45241 0
+  "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" 1756282306.64382 27034 9585a873d12c9eec779c56c322f7f5c2 ""
   "/usr/share/texmf-dist/fonts/enc/dvips/base/8r.enc" 1742685315 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texmf-dist/fonts/map/fontname/texfonts.map" 1742685315 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm" 1742685315 1408 5937f58aa508ea2cea4901c07d10f5fe ""
@@ -99,9 +99,9 @@
   "img/efficiency.jpg" 1756027297.52043 28970 1e9921f4292311c1d7204a7ffdc65b13 ""
   "img/reduce-example.png" 1756027297.52376 28632 0577ecc39f2ad0f7b20f0daab34dfe96 ""
   "img/speedup.jpg" 1756027297.52376 30772 4c78078da00daaa06ee62c188bc581f8 ""
-  "paper.aux" 1756229717.18748 2053 94b74bec0656420936cd87ffd89c8099 "pdflatex"
+  "paper.aux" 1756282308.08383 2053 94b74bec0656420936cd87ffd89c8099 "pdflatex"
   "paper.bbl" 1756229670.06424 752 25a91099c262fe8ed34a59f2e4e4f71d "bibtex paper"
-  "paper.tex" 1756229716.63415 26852 20347012335f1f43af091dbd2b1b1d0a ""
+  "paper.tex" 1756282306.64382 27034 9585a873d12c9eec779c56c322f7f5c2 ""
   (generated)
   "paper.aux"
   "paper.log"

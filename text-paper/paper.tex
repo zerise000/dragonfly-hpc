@@ -428,8 +428,8 @@ of linear speedup we get that the efficiency is equal to the inverse of $p$
 \label{results}
 Now it is possible to show results obtained from the cluster,
 using the configuration with 4 cores and 1 thread will be considered
-equal as the serial time
-\newline
+equal as the serial time. The reason for this approach is that a single core computation would require 1024 times the workload of the 1024 process version, but we calibrated the 1024 core version to take 3 minutes.
+
 
 \begin{tabular}{| c | c | c | c | c | c | c |}
   \hline
