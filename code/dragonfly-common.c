@@ -614,9 +614,10 @@ void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
       (LogicalChunk *)malloc(sizeof(LogicalChunk) * nr_threads);
   unsigned int elems_per_thread = (end - start) / nr_threads;
 
-#pragma omp parallel num_threads(nr_threads)
+#pragma omp parallel for num_threads(nr_threads)
+for(unsigned int thread_id=0; thread_id<nr_threads; thread_id++)
   {
-    unsigned int thread_id = omp_get_thread_num();
+    //unsigned int thread_id = omp_get_thread_num();
     void *tmp_fitness_data = NULL;
     if (d->fitness_data_size != 0) {
       tmp_fitness_data = malloc(d->fitness_data_size);
@@ -638,7 +639,7 @@ void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
     }
   }
   memcpy(current_chunk, &temp_chunks[0], sizeof(LogicalChunk));
-  for (unsigned int i = 0; i < nr_threads; i++) {
+  for (unsigned int i = 1; i < nr_threads; i++) {
     computation_status_merge(&current_chunk->comp,
                              &temp_chunks[i].comp, dim);
   }
