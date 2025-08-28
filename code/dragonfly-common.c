@@ -1,8 +1,8 @@
-#include <float.h>
 #include "dragonfly-common.h"
 #include "stdlib.h"
 #include "string.h"
 #include "utils.h"
+#include <float.h>
 
 #include <assert.h>
 #include <stdbool.h>
@@ -304,7 +304,14 @@ void inner_dragonfly_step(Dragonfly *d, LogicalChunk chunk,
       cur_speed[i] += d->w.e * E;
       cur_speed[i] += levy;
 
+      cur_speed[i] = min(cur_speed[i], d->space_size);
+      cur_speed[i] = max(cur_speed[i], -d->space_size);
+
       cur_pos[i] += cur_speed[i];
+
+      cur_pos[i] = min(cur_pos[i], d->space_size);
+      cur_pos[i] = max(cur_pos[i], -d->space_size);
+      
     }
   }
 }
@@ -391,23 +398,12 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
         cur.start, cur.end, phisical_chunk_size, p.population_size,
         process_count - rank_id - 1, logical_chunk_size, local_chunks);
     //  1) accumulate
-    if (p.threads_per_process > 1) {
-      #ifdef USE_OPENMP
-#pragma omp parallel for num_threads(p.threads_per_process)
-      for (unsigned int j = 0; j < n_local_chunks; j++) {
-        new_computation_accumulate(&cur, &local_chunks[j], &cur.seed,
-                                   p.threads_per_process);
-      }
-      #else
-      fprintf(stderr, "compiled without openmp, code unavailable\n");
-      exit(-1);
-      #endif
-
-    } else {
-      for (unsigned int j = 0; j < n_local_chunks; j++) {
-        new_computation_accumulate(&cur, &local_chunks[j], &cur.seed,
-                                   p.threads_per_process);
-      }
+    #ifdef USE_OPENMP
+    #pragma omp parallel for num_threads(p.threads_per_process)
+    #endif
+    for (unsigned int j = 0; j < n_local_chunks; j++) {
+      new_computation_accumulate(&cur, &local_chunks[j], &cur.seed,
+                                 p.threads_per_process);
     }
     if (process_count > 1) {
 
@@ -572,8 +568,7 @@ void inner_new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
   zeroed(cumulated_speed, dim);
 
   float next_enemy_fitness = FLT_MAX;
-  float next_food_fitness = FLT_MIN;
-
+  float next_food_fitness = -FLT_MAX;
   unsigned int indexes[2] = {0, 0};
   end = end - d->start;
 
@@ -643,30 +638,11 @@ void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
     }
   }
   memcpy(current_chunk, &temp_chunks[0], sizeof(LogicalChunk));
-  for (unsigned int i = 1; i < nr_threads; i++) {
-    for (unsigned int k = 0; k < dim; k++) {
-      current_chunk->comp.cumulated_pos[k] +=
-          temp_chunks[i].comp.cumulated_pos[k];
-      current_chunk->comp.cumulated_speeds[k] +=
-          temp_chunks[i].comp.cumulated_speeds[k];
-    }
-
-    if (current_chunk->comp.next_food_fitness <
-        temp_chunks[i].comp.next_food_fitness) {
-      current_chunk->comp.next_food_fitness =
-          temp_chunks[i].comp.next_food_fitness;
-      memcpy(current_chunk->comp.next_food, temp_chunks[i].comp.next_food,
-             sizeof(float) * dim);
-    }
-
-    if (current_chunk->comp.next_enemy_fitness >
-        temp_chunks[i].comp.next_enemy_fitness) {
-      current_chunk->comp.next_enemy_fitness =
-          temp_chunks[i].comp.next_enemy_fitness;
-      memcpy(current_chunk->comp.next_enemy, temp_chunks[i].comp.next_enemy,
-             sizeof(float) * dim);
-    }
+  for (unsigned int i = 0; i < nr_threads; i++) {
+    computation_status_merge(&current_chunk->comp,
+                             &temp_chunks[i].comp, dim);
   }
+  
   free(temp_chunks);
 #else
   fprintf(stderr,
