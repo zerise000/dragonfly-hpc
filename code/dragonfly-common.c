@@ -1,4 +1,4 @@
-#define USE_OPENMP
+#include <float.h>
 #include "dragonfly-common.h"
 #include "stdlib.h"
 #include "string.h"
@@ -9,8 +9,6 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#include <time.h>
-// #ifdef USE_MPI
 #include <mpi.h>
 #include <unistd.h>
 
@@ -393,10 +391,23 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
         cur.start, cur.end, phisical_chunk_size, p.population_size,
         process_count - rank_id - 1, logical_chunk_size, local_chunks);
     //  1) accumulate
-    for (unsigned int j = 0; j < n_local_chunks; j++) {
-      // TODO paralelization opportunity if handling correctly random seed
-      new_computation_accumulate(&cur, &local_chunks[j], &cur.seed,
-                                 p.threads_per_process);
+    if (p.threads_per_process > 1) {
+      #ifdef USE_OPENMP
+#pragma omp parallel for num_threads(p.threads_per_process)
+      for (unsigned int j = 0; j < n_local_chunks; j++) {
+        new_computation_accumulate(&cur, &local_chunks[j], &cur.seed,
+                                   p.threads_per_process);
+      }
+      #else
+      fprintf(stderr, "compiled without openmp, code unavailable\n");
+      exit(-1);
+      #endif
+
+    } else {
+      for (unsigned int j = 0; j < n_local_chunks; j++) {
+        new_computation_accumulate(&cur, &local_chunks[j], &cur.seed,
+                                   p.threads_per_process);
+      }
     }
     if (process_count > 1) {
 
@@ -560,9 +571,8 @@ void inner_new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
   zeroed(cumulated_pos, dim);
   zeroed(cumulated_speed, dim);
 
-  float next_enemy_fitness = d->fitness(d->positions+(start-d->start)*dim, seed, dim, fitness_data);
-  float next_food_fitness = next_enemy_fitness;
-  // status->n = d->local_n;
+  float next_enemy_fitness = FLT_MAX;
+  float next_food_fitness = FLT_MIN;
 
   unsigned int indexes[2] = {0, 0};
   end = end - d->start;
@@ -608,9 +618,9 @@ void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
   LogicalChunk *temp_chunks =
       (LogicalChunk *)malloc(sizeof(LogicalChunk) * nr_threads);
   unsigned int elems_per_thread = (end - start) / nr_threads;
-  unsigned int thread_id;
-#pragma omp parallel for private(thread_id) num_threads(nr_threads)
-  for (thread_id = 0; thread_id < nr_threads; thread_id++) {
+
+#pragma omp parallel num_threads(nr_threads)
+  {
     unsigned int thread_id = omp_get_thread_num();
     void *tmp_fitness_data = NULL;
     if (d->fitness_data_size != 0) {
@@ -624,8 +634,7 @@ void new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
     unsigned int thread_end = thread_id == (nr_threads - 1)
                                   ? end
                                   : min(thread_start + elems_per_thread, end);
-    // printf("[%d %d]>[%d %d]\n", start, end, thread_start, thread_end);
-    unsigned int local_seed = 0; //(*seed) * (thread_id + 1);
+    unsigned int local_seed = 0;
     inner_new_computation_accumulate(d, &temp_chunks[thread_id], &local_seed,
                                      thread_start, thread_end,
                                      tmp_fitness_data);
