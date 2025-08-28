@@ -13,11 +13,6 @@
 #include <mpi.h>
 #include <unistd.h>
 
-// TODO remove signature
-void new_computation_accumulate_2(Dragonfly *d, LogicalChunk *current_chunk,
-                                  unsigned int *seed, unsigned int nr_threads);
-// #endif
-
 // n, chunks, iterations, dim
 Parameters parameter_parse(int argc, char *argv[]) {
   Parameters p;
@@ -418,7 +413,7 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
     //  1) accumulate
     for (unsigned int j = 0; j < n_local_chunks; j++) {
       // TODO paralelization opportunity if handling correctly random seed
-      new_computation_accumulate_2(&cur, &local_chunks[j], &cur.seed,
+      computation_accumulate(&cur, &local_chunks[j], &cur.seed,
                                    p.threads_per_process);
     }
     if (threads > 1) {
@@ -559,45 +554,7 @@ void update_chunk_size(ChunkSize *c) {
   c->count = (unsigned int)(round(temp));
 }
 
-void inner_computation_accumulate(
-    Dragonfly *d, unsigned int thread_start, unsigned int thread_end,
-    float *local_cumulated_pos, float *local_cumulated_speed,
-    float *local_food_fitness, float *local_enemy_fitness,
-    unsigned int *local_indexes, unsigned int dim, unsigned int *local_seed) {
-  for (unsigned int k = thread_start; k < thread_end; k++) {
-    float *iter_pos = d->positions + dim * k;
-    float *iter_speed = d->speeds + dim * k;
-    sum_assign(local_cumulated_pos, iter_pos, dim);
-    sum_assign(local_cumulated_speed, iter_speed, dim);
-
-    float fitness = d->fitness(iter_pos, local_seed, dim);
-
-    if (fitness > *local_food_fitness) {
-      local_indexes[0] = k;
-      *local_food_fitness = fitness;
-    }
-    if (fitness < *local_enemy_fitness) {
-      local_indexes[1] = k;
-      *local_enemy_fitness = fitness;
-    }
-  }
-}
-
-void update_status(Dragonfly *d, LogicalChunk *current_chunk,
-                   float next_food_fitness, float next_enemy_fitness,
-                   unsigned int *indexes, unsigned int start, unsigned int end,
-                   unsigned int dim) {
-
-  memcpy(current_chunk->comp.next_food, d->positions + indexes[0] * dim,
-         sizeof(float) * dim);
-  memcpy(current_chunk->comp.next_enemy, d->positions + indexes[1] * dim,
-         sizeof(float) * dim);
-  current_chunk->comp.next_enemy_fitness = next_enemy_fitness;
-  current_chunk->comp.next_food_fitness = next_food_fitness;
-  current_chunk->comp.n = end - start;
-}
-
-void inner_new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
+void inner_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
                                       unsigned int *seed, unsigned start,
                                       unsigned end) {
   unsigned dim = d->dim;
@@ -606,10 +563,7 @@ void inner_new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
   zeroed(cumulated_pos, dim);
   zeroed(cumulated_speed, dim);
 
-
-  unsigned sseeeeed=0;
-
-  float next_enemy_fitness = d->fitness(cumulated_pos, &sseeeeed, dim);
+  float next_enemy_fitness = d->fitness(cumulated_pos, seed, dim);
   float next_food_fitness = next_enemy_fitness;
   // status->n = d->local_n;
 
@@ -641,32 +595,31 @@ void inner_new_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
   current_chunk->comp.next_food_fitness = next_food_fitness;
   current_chunk->comp.n = end - (start - d->start);
 }
-void new_computation_accumulate_2(Dragonfly *d, LogicalChunk *current_chunk,
+void computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
                                   unsigned int *seed, unsigned int nr_threads) {
   unsigned start = max(current_chunk->start, d->start);
   unsigned end = min(current_chunk->end, d->end);
 
-  unsigned dim = d->dim;
   if (nr_threads == 1 || nr_threads > end - start) {
-    inner_new_computation_accumulate(d, current_chunk, seed, start, end);
+    inner_computation_accumulate(d, current_chunk, seed, start, end);
     return;
   }
 #ifdef USE_OPENMP
   LogicalChunk* temp_chunks = (LogicalChunk *)malloc(sizeof(LogicalChunk)*nr_threads);
   unsigned int elems_per_thread = (end - start) / nr_threads;
-  //#pragma omp parallel num_threads(nr_threads)
-  for (unsigned thread_id=0; thread_id<nr_threads; thread_id++)
+
+  unsigned dim = d->dim;
+	unsigned int thread_id;
+#pragma omp parallel for private(thread_id) num_threads(nr_threads) 
+  for (thread_id=0; thread_id<nr_threads; thread_id++)
    {
-    //unsigned int thread_id = omp_get_thread_num();
-    memcpy(&temp_chunks[thread_id], current_chunk, sizeof(LogicalChunk));
     
     unsigned int thread_start =start + (thread_id * elems_per_thread);
     unsigned int thread_end = thread_id == (nr_threads - 1)
                                   ? end
                                   : min(thread_start + elems_per_thread, end);
-    printf("[%d %d]>[%d %d]\n", start, end, thread_start, thread_end);
-    unsigned int local_seed = 0;//(*seed) * (thread_id + 1);
-    inner_new_computation_accumulate(d, &temp_chunks[thread_id], &local_seed,
+    unsigned int local_seed = (*seed) * (thread_id + 1);
+    inner_computation_accumulate(d, &temp_chunks[thread_id], &local_seed,
                                      thread_start, thread_end);
   }
   memcpy(current_chunk, &temp_chunks[0], sizeof(LogicalChunk));

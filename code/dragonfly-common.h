@@ -106,4 +106,10 @@ void computation_status_merge(ComputationStatus *out, ComputationStatus *in,
 float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
                          unsigned int threads, unsigned int rank_id,
                          float space_size, unsigned int srand);
+
+void inner_computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
+                                      unsigned int *seed, unsigned start,
+                                      unsigned end);
+void computation_accumulate(Dragonfly *d, LogicalChunk *current_chunk,
+                                  unsigned int *seed, unsigned int nr_threads);
 #endif
