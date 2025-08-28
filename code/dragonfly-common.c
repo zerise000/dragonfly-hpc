@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "utils.h"
+#include <time.h>
 #include <float.h>
 
 #include <assert.h>
@@ -311,7 +312,6 @@ void inner_dragonfly_step(Dragonfly *d, LogicalChunk chunk,
 
       cur_pos[i] = min(cur_pos[i], d->space_size);
       cur_pos[i] = max(cur_pos[i], -d->space_size);
-      
     }
   }
 }
@@ -398,13 +398,24 @@ float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
         cur.start, cur.end, phisical_chunk_size, p.population_size,
         process_count - rank_id - 1, logical_chunk_size, local_chunks);
     //  1) accumulate
-    #ifdef USE_OPENMP
-    #pragma omp parallel for num_threads(p.threads_per_process)
-    #endif
-    for (unsigned int j = 0; j < n_local_chunks; j++) {
-      new_computation_accumulate(&cur, &local_chunks[j], &cur.seed,
-                                 p.threads_per_process);
+
+    //accumulate time with wall-clock time (not CPU time)
+
+    if (p.threads_per_process > 1) {
+#pragma omp parallel for num_threads(p.threads_per_process)
+      for (unsigned int j = 0; j < n_local_chunks; j++) {
+
+        new_computation_accumulate(&cur, &local_chunks[j], &cur.seed,
+                                   p.threads_per_process);
+      }
+    } else
+
+    {
+      for (unsigned int j = 0; j < n_local_chunks; j++) {
+        new_computation_accumulate(&cur, &local_chunks[j], &cur.seed, 1);
+      }
     }
+
     if (process_count > 1) {
 
       // 2) send rightmost part to 1 left

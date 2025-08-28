@@ -84,8 +84,8 @@ int main(int argc, char **argv) {
   MPI_Init(NULL, NULL);
   // wait for all the process to start
   MPI_Barrier(MPI_COMM_WORLD);
-  clock_t start_time;
-  start_time = clock();
+  struct timespec start_time, end_time;
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
   int comm_size, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
       .ll = {wi[12], wi[13]},
   };
   float *res = dragonfly_compute(p, w, c, fitness, NULL, 0, comm_size, rank,
-                                 2.0, start_time + rank);
+                                 2.0, start_time.tv_nsec + rank);
   // float *res = malloc(sizeof(float)*p.population_size);
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -120,7 +120,8 @@ int main(int argc, char **argv) {
     for (unsigned int i = 0; i < p.problem_dimensions; i++) {
       printf("%f\n", res[i]);
     }
-    double duration = (double)(clock() - start_time) / CLOCKS_PER_SEC;
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+    double duration = (double)(end_time.tv_nsec - start_time.tv_nsec) / 1e9 + (end_time.tv_sec - start_time.tv_sec);
     printf("Execution time = %f\n", duration);
   }
   free(res);
