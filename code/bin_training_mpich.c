@@ -8,7 +8,14 @@
 #include <time.h>
 #include <unistd.h>
 
-float eval(float *wi, unsigned int *seedi, unsigned int d) {
+float eval(float *wi, unsigned int *seedi, unsigned int d, void *data) {
+  (void)data;
+  if (d < 14) {
+    fprintf(stderr,
+            "impossible to compute with %d dimensions it must be at least 14\n",
+            d);
+    exit(-1);
+  }
   unsigned int seed = *seedi;
   for (int i = 0; i < 14; i++) {
     if (wi[i] < 0.0) {
@@ -31,7 +38,7 @@ float eval(float *wi, unsigned int *seedi, unsigned int d) {
     wi[10] /= 1.2 * m;
     wi[11] /= 1.2 * m;
   }
-  (void)d;
+
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},
@@ -49,31 +56,25 @@ float eval(float *wi, unsigned int *seedi, unsigned int d) {
                   .iterations = 80,
                   .threads_per_process = 1};
   ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
-  Fitness fitness = shifted_fitness;
+  Fitness fitness = rastrigin_fitness;
   float avg = 0.0;
   int N = 30;
   for (int i = 0; i < N; i++) {
 
-    float *shifted_tmp = malloc(sizeof(float) * p.problem_dimensions);
-    float *shifted_rotation =
-        malloc(sizeof(float) * p.problem_dimensions * p.problem_dimensions);
-    float *shifted_shift = init_array(p.problem_dimensions, 80.0, &seed);
-    init_matrix(shifted_rotation, 90.0, p.problem_dimensions, &seed);
+    void *shifted_fitness_data = malloc_shifted_fitness(fitness, 80.0, 90.0, &seed,
+                                                   p.problem_dimensions);
 
-    init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift,
-                         rastrigin_fitness);
+    float *res =
+        dragonfly_compute(p, w, c, shifted_fitness, shifted_fitness_data,
+                          sizeof(ShiftedFitnessParams), 1, 0, 100.0, seed);
 
-    float *res = dragonfly_compute(p, w, c, fitness, 1, 0, 100.0, seed);
-
-    avg += fitness(res, &seed, p.problem_dimensions);
+    avg += fitness(res, &seed, p.problem_dimensions, shifted_fitness_data);
     /*printf("%f ", fitness(res, seed, p.dim));
     for(int i=0; i<14; i++){
       printf("%2f ", wi[i]);
     }
     printf("\n");*/
-    free(shifted_tmp);
-    free(shifted_rotation);
-    free(shifted_shift);
+    free_shifted_fitness(shifted_fitness_data);
     free(res);
   }
   return avg / N;
@@ -93,22 +94,9 @@ int main(int argc, char **argv) {
   Fitness fitness = eval;
   Parameters p = parameter_parse(argc, argv);
   ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
-  float wi[14] = {
-  0.000000,
-0.000100,
-1.023072,
-1.628618,
-0.000000,
-0.000100,
-0.930669,
-1.020353,
-0.000000,
-0.100000,
-0.000000,
-0.000100,
-0.000000,
-0.000100
-};
+  float wi[14] = {0.000000, 0.000100, 1.023072, 1.628618, 0.000000,
+                  0.000100, 0.930669, 1.020353, 0.000000, 0.100000,
+                  0.000000, 0.000100, 0.000000, 0.000100};
   Weights w = {
       // exploring
       .al = {wi[0], wi[1]},
@@ -120,13 +108,14 @@ int main(int argc, char **argv) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
-  float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 2.0, start_time+rank);
+  float *res = dragonfly_compute(p, w, c, fitness, NULL, 0, comm_size, rank,
+                                 2.0, start_time + rank);
   // float *res = malloc(sizeof(float)*p.population_size);
   MPI_Barrier(MPI_COMM_WORLD);
 
   if (rank == 0) {
     unsigned int seed = 0;
-    float fit = fitness(res, &seed, p.problem_dimensions);
+    float fit = fitness(res, &seed, p.problem_dimensions, NULL);
     printf("found fitness=%f\n", fit);
     for (unsigned int i = 0; i < p.problem_dimensions; i++) {
       printf("%f\n", res[i]);

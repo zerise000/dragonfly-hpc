@@ -21,21 +21,27 @@ void zeroed(float *dest, unsigned int size);
 
 void brownian_motion(float* inp, unsigned int dim, unsigned int * seed);
 // fitness functions
-float rastrigin_fitness(float *inp, unsigned int *, unsigned int dim);
-float sphere_fitness(float *inp, unsigned int *, unsigned int dim);
-float rosenblock_fitness(float *inp, unsigned int*, unsigned int dim);
+float rastrigin_fitness(float *inp, unsigned int *, unsigned int dim, void *data);
+float sphere_fitness(float *inp, unsigned int *, unsigned int dim, void *data);
+float rosenblock_fitness(float *inp, unsigned int*, unsigned int dim, void *data);
 
-float shifted_fitness(float *inp, unsigned int* seed, unsigned int dim);
-void init_shifted_fitness(float *tmp, float * rotation, float * shift, Fitness fitness);
 void init_matrix(float *inp, float range_max, unsigned int dim, unsigned int *seed);
 
+#define MAX_PROBLEM_DIMENSIONS 16
+typedef struct {
+  Fitness fitness;
+  float tmp[MAX_PROBLEM_DIMENSIONS];
+  float rotation[MAX_PROBLEM_DIMENSIONS*MAX_PROBLEM_DIMENSIONS];
+  float shift[MAX_PROBLEM_DIMENSIONS];
 
-void dragonfly_compute_step(Dragonfly *d, float *average_speed,
-    float *cumulated_pos, float *food, float *enemy,
-    unsigned int N, unsigned int NUM_THREADS);
-void new_computation_accumulate(Dragonfly *d, 
-																LogicalChunk *current_chunk,
-                                unsigned int *seed,
-																unsigned int nr_threads);
+} ShiftedFitnessParams;
+
+ShiftedFitnessParams *malloc_shifted_fitness(Fitness fitness, float shift_range,
+                                             float rotation_range,
+                                             unsigned *seed, unsigned dim);
+void free_shifted_fitness(ShiftedFitnessParams *s);
+
+float shifted_fitness(float *inp, unsigned int *seed, unsigned int dim,
+                      void *data);
 
 #endif

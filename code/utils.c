@@ -22,8 +22,6 @@ void* my_malloc(size_t size, const char *file, int line, const char *func)
 }*/
 #include "utils.h"
 
-
-
 float *init_array(unsigned int dimensions, float range_max,
                   unsigned int *seed) {
   float *arr = malloc(dimensions * sizeof(float));
@@ -120,7 +118,8 @@ void brownian_motion(float *inp, unsigned int dim, unsigned int *seed) {
   }
 }
 
-float rastrigin_fitness(float *inp, unsigned int *seed, unsigned int dim) {
+float rastrigin_fitness(float *inp, unsigned int *seed, unsigned int dim, void *data) {
+  (void)(data);
   (void)(seed);
   float ret = 10.0 * dim;
   for (unsigned int i = 0; i < dim; i++) {
@@ -129,7 +128,8 @@ float rastrigin_fitness(float *inp, unsigned int *seed, unsigned int dim) {
   return -ret;
 }
 
-float sphere_fitness(float *inp, unsigned int *seed, unsigned int dim) {
+float sphere_fitness(float *inp, unsigned int *seed, unsigned int dim, void *data) {
+  (void)(data);
   (void)(seed);
   float res = 0.0;
   for (unsigned int i = 0; i < dim; i++) {
@@ -137,7 +137,8 @@ float sphere_fitness(float *inp, unsigned int *seed, unsigned int dim) {
   }
   return -res;
 }
-float rosenblock_fitness(float *inp, unsigned int *seed, unsigned int dim) {
+float rosenblock_fitness(float *inp, unsigned int *seed, unsigned int dim, void *data) {
+  (void)(data);
   (void)(seed);
   float res = 0.0;
   for (unsigned int i = 0; i < dim - 1; i++) {
@@ -147,23 +148,25 @@ float rosenblock_fitness(float *inp, unsigned int *seed, unsigned int dim) {
   return -res;
 }
 
-float *ROTATION;
-float *SHIFT;
-Fitness FITNESS;
-float *TMP;
-void init_shifted_fitness(float *tmp, float *rotation, float *shift,
-                          Fitness fitness) {
-  ROTATION = rotation;
-  SHIFT = shift;
-  FITNESS = fitness;
-  TMP = tmp;
+ShiftedFitnessParams *malloc_shifted_fitness(Fitness fitness, float shift_range,
+                                             float rotation_range,
+                                             unsigned *seed, unsigned dim) {
+  ShiftedFitnessParams *ret = malloc(sizeof(ShiftedFitnessParams));
+  ret->fitness=fitness;
+  for (unsigned int i = 0; i < dim; i++) {
+    ret->shift[i] = RAND_FLOAT(shift_range, seed);
+  }
+  init_matrix(ret->rotation, rotation_range, dim, seed);
+  return ret;
+}
+void free_shifted_fitness(ShiftedFitnessParams *s) {
+  free(s);
 }
 
-float shifted_fitness(float *inp, unsigned int *seed, unsigned int dim) {
-  matrix_times_vector(TMP, ROTATION, inp, dim);
-  sum_assign(TMP, SHIFT, dim);
-  return FITNESS(TMP, seed, dim);
+float shifted_fitness(float *inp, unsigned int *seed, unsigned int dim,
+                      void *data) {
+  ShiftedFitnessParams *params = (ShiftedFitnessParams *)data;
+  matrix_times_vector(params->tmp, params->rotation, inp, dim);
+  sum_assign(params->tmp, params->shift, dim);
+  return params->fitness(params->tmp, seed, dim, NULL);
 }
-
-
-

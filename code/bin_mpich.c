@@ -3,13 +3,12 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "dragonfly-common.h"
 #include "utils.h"
-
+unsigned counter=0;
 int main(int argc, char *argv[]) {
   MPI_Init(NULL, NULL);
   // wait for all the process to start
@@ -56,11 +55,11 @@ float wi[14] = {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   Fitness fitness = rastrigin_fitness;
 
-  float *res = dragonfly_compute(p, w, c, fitness, comm_size, rank, 100.0, start_time);
+  float *res = dragonfly_compute(p, w, c, fitness, NULL, 0, comm_size, rank, 100.0, start_time);
 
   MPI_Barrier(MPI_COMM_WORLD);
   unsigned int s = 0;
-  float fit = fitness(res, &s, p.problem_dimensions);
+  float fit = fitness(res, &s, p.problem_dimensions, NULL);
 
   if (rank == 0) {
     printf("found fitness=%f\n", fit);
@@ -71,5 +70,7 @@ float wi[14] = {
     printf("Execution time = %f\n", duration);
   }
   free(res);
+  printf("%d\n", counter);
   MPI_Finalize();
+  
 }
