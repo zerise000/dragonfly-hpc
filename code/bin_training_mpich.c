@@ -108,8 +108,10 @@ int main(int argc, char **argv) {
       .wl = {wi[10], wi[11]},
       .ll = {wi[12], wi[13]},
   };
+  
   float *res = dragonfly_compute(p, w, c, fitness, NULL, 0, comm_size, rank,
                                  2.0, start_time.tv_nsec + rank);
+
   // float *res = malloc(sizeof(float)*p.population_size);
   MPI_Barrier(MPI_COMM_WORLD);
 
