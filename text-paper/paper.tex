@@ -284,7 +284,7 @@ We did this by ensuring that if a chunk starts in another process, and ends in t
 
 The algorithm is divided in steps (isolated by an MPI barrier):
 \begin{itemize}
-  \item \textbf{Send left}: first, the process that have the end of a block, share theyr contribute to the left
+  \item \textbf{Send left}: first, the process that have the end of a block, share their contribute to the left
   \item \textbf{Accumulate and share} Then it is accumulated in the first process and broadcasted back to all partecipating processes
   \item \textbf{Send right} Then the rightmost process in the block receives the accumulated value from the left.
 \end{itemize}
@@ -300,102 +300,168 @@ The learned hyperparameters were then fed back into the algorithm to enhance its
 This iterative process was repeated twice, allowing the algorithm to progressively improve its ability to navigate complex search spaces.
 By leveraging the scalability of MPI, we were able to significantly reduce the time required for hyperparameter tuning while maintaining the accuracy of the results.
 
-\section{OpenMP implementation}
+\section{OpenMP optimization}
 
 OpenMP is a low level API that allows us to execute a sequence of instructions on different threads belonging
-to the same CPU core, improving in this way the performances of our implementation. This feature can be used to 
-speed up the execution of some slow functions, in our case these will be dragonfly-compute-step and message-accumulate
-
-\subsection*{General use}
-
-First of all it is necessary to understand how OpenMP should be inserted in the code: first of all we have to use 
-a compiler that supports this technology, in our case we have gcc, which allows OpenMP execution thanks to the flag -fopenmp.
-Second we need to include a pragma directive in our code, which will wrap the set of instructions that we are interested to execute
-in parallel. Since the implemented results will perform loops mainly then it is fundamental to calculate the work balance between the number of iterations, if the main
-body is a loop,
-and the number of threads available. Each thread has to define the starting and the end point of the loop that has to execute,
-calculating the starting index as $rank*ratio$ and the end one as $ratio*(rank+1)$, where $rank$ is the ID of the thread
-
-\subsection*{dragonfly-compute-step}
-
-One of the two functions that we are interested to execute using OpenMP is \textit{dragonfly-compute-step}:
-if we take a look on the serial version we notice that each computation step is independent
-from other iterations. This means that the execution flow can be split in many subtasks assigned
-to threads. The following code snippet illustrate how all the procedure has been implemented
-
-\begin{lstlisting}[language=C,caption={parallelized dragonfly-compute-step}]
-void dragonfly_compute_step(Dragonfly *d, 
-                            float *average_speed,
-                            float *cumulated_pos, 
-                            float *food, 
-                            float *enemy, 
-                            unsigned int N, 
-                            unsigned int NR_THREADS) {
-
-  unsigned int base_random = rand_r(&d->seed);
-  unsigned int rest = d->N % NR_THREADS;
-  unsigned int ratio = d->N / NR_THREADS;
-
-  ...
-
-  #pragma omp parallel num_threads(NR_THREADS)
-    {
-      
-      unsigned int rank = omp_get_thread_num();
-      //printf("rank=%d\n", rank);
-      unsigned int base = ratio * rank;
-      unsigned int limit = ratio * (rank + 1);
-      inner_dragonfly_step(d, average_speed, 
-                          cumulated_pos, food, 
-                          enemy, N,
-                          base, limit, base_random);
-    }
-  
-  ...
-
-  if (rest != 0) {
-      unsigned int r_base = ratio * NR_THREADS;
-      unsigned int r_end = d->N;
-
-      inner_dragonfly_step(d, average_speed, 
-                           cumulated_pos, 
-                           food, enemy, N,
-                           r_base, r_end, base_random);
-    }
-  }
-
-  weights_step(&d->w);
-  
-  }
-
-\end{lstlisting}
-
-
-\noindent After we got all basic informations the \textit{inner\_dragonfly\_step}
-function can be executed, wrapping it into the \textbf{pragma} directive that we have seen earlier: in this way each thread will 
-perform the necessary operations only on a specific portion of the overall positions and speeds arrays.
-If the number of threads does not divide perfectly the size of the arrays then we compute the rest
-returned from the ratio calculation and the remaining cells will be processed using the serial approach.
+to the same CPU core, improving in this way the performances of our implementation.
+Thanks to a compiler that supports this technology, in our case it is \textit{gcc},
+we can include  pragma directives in our code,
+which will wrap the set of instructions that we are interested to execute
+in parallel. This feature can be used to 
+speed up the execution of some slow functions like the \textit{computation-accumulate}
 
 \subsection*{computation\_accumulate}
 
-The \textit{computation\_accumulate}  must compute
-the cumulated positions and speeds of the chunk and find the best food and enemy positions.
-The implementation of a parallelized approach in this case  is more complicated to achieve, 
-because threads should read and write on the same memeory areas which could be 
-difficult to execute independently from each other. This time it is necessary to define
-local buffers for each thread, so they can store temporary results without the risk of using
-overlapping memeory locations. 
-\begin{figure}[H]
-  \includegraphics[scale=0.2]{img/reduce-example.png}
-  \centering
-  \caption{Illustration of the reduce process performed by the computation\_accumulate function}
-\end{figure}
-\noindent The parallel section provides that each thread must compute the local
-cumulated sums of velocities and positions, then they must select the position with the best fitness value
-in order to find the best local position of food and enemies. Once the local execution is completed
-it will update the global status of the chunk using a critical section, with one thread that can execute that
-specific portion of the program
+This function, after defining the starting and the ending points, compute
+the cumulated sums of dragonfiles positions and speeds 
+and saves the indexes of dragonfiles positions with the best fitness, using them
+to set the next locations of food and enemies.
+
+\begin{lstlisting}[language=C,caption={the serial version of \textit{computation\_accumulate}}]
+  unsigned dim = d->dim;
+  float *cumulated_pos = current_chunk->comp.cumulated_pos;
+  float *cumulated_speed = current_chunk->comp.cumulated_speeds;
+  zeroed(cumulated_pos, dim);
+  zeroed(cumulated_speed, dim);
+
+  float next_enemy_fitness = FLT_MAX;
+  float next_food_fitness = FLT_MIN;
+  unsigned int indexes[2] = {0, 0};
+  end = end - d->start;
+
+  for (unsigned int k = start - d->start; k < end; k++) {
+    float *iter_pos = d->positions + dim * k;
+    float *iter_speed = d->speeds + dim * k;
+    sum_assign(cumulated_pos, iter_pos, dim);
+    sum_assign(cumulated_speed, iter_speed, dim);
+
+    float fitness = d->fitness(iter_pos, 
+                               seed, dim, 
+                               fitness_data);
+    if (fitness > next_food_fitness) {
+      indexes[0] = k;
+      next_food_fitness = fitness;
+    }
+    if (fitness < next_enemy_fitness) {
+      indexes[1] = k;
+      next_enemy_fitness = fitness;
+    }
+  }
+
+  memcpy(current_chunk->comp.next_food, 
+        d->positions + indexes[0] * dim,
+        sizeof(float) * dim);
+  memcpy(current_chunk->comp.next_enemy, 
+        d->positions + indexes[1] * dim,
+        sizeof(float) * dim);
+      
+  current_chunk->comp.next_enemy_fitness = next_enemy_fitness;
+  current_chunk->comp.next_food_fitness = next_food_fitness;
+  current_chunk->comp.n = end - (start - d->start);
+\end{lstlisting}
+
+
+The implementation of a parallelized approach in this case is obstacled by the fact that 
+threads should read and write on the same memeory areas like the \textit{cumulated\_pos},
+\textit{cumulated\_speed}, which could be 
+difficult to execute independently from each other due to race conditions. 
+In order to avoid this problem we split the current logical chunk into small ones, each
+one of them keeps track of: 
+represents:
+\begin{itemize}
+\item the local cumulated positions
+\item the local cumulated speeds
+\item the best local enemy and food fitnesses
+\item the indexes of the positions of dragonfiles with the best fitnesses
+\end{itemize}
+\noindent parallel executions takes care of a particular subchunk,
+defining also the initial and final positions by
+calculating the starting index as $thread\_ID*elems\_per\_thread$ and the end one as $start\_index+ratio$; 
+the final one however could be responsible for more dragonfiles 
+than others since the number of threads does not always
+divide the number of elements perfectly. The single threads then proceed to 
+calculate the cumulated sums and the fitnesses of the current dragonfly, 
+saving its position index if it maximize the food fitness or minimize the 
+enemy fitness. 
+\begin{lstlisting}[language=C,caption={the parallel version of \textit{computation\_accumulate}}]
+  LogicalChunk *temp_chunks =
+      (LogicalChunk *)malloc(sizeof(LogicalChunk) * nr_threads);
+  unsigned int elems_per_thread = (end - start)/nr_threads;
+
+  #pragma omp parallel num_threads(nr_threads)
+    {
+      unsigned int thread_id = omp_get_thread_num();
+      void *tmp_fitness_data = NULL;
+      if (d->fitness_data_size != 0) {
+        tmp_fitness_data = malloc(d->fitness_data_size);
+        memcpy(tmp_fitness_data, 
+               d->fitness_data, 
+               d->fitness_data_size);
+      }
+
+      memcpy(&temp_chunks[thread_id], current_chunk, sizeof(LogicalChunk));
+      unsigned int thread_start = start + (thread_id * elems_per_thread);
+      unsigned int thread_end = thread_id == (nr_threads - 1) ? end: min(thread_start + elems_per_thread,end);
+      unsigned int local_seed = 0;
+      
+      inner_new_computation_accumulate(
+        d,
+        &temp_chunks[thread_id],
+        &local_seed,
+        thread_start, 
+        thread_end,tmp_fitness_data
+      );
+      if (d->fitness_data_size != 0) {
+        free(tmp_fitness_data);
+      }
+    }
+  
+ \end{lstlisting}
+ After the join of all threads, the program performs a reduce of subchunks, calculating
+the optimal . This methodology can be seen as a unique critical section
+executed only once after all the parallel processings have ended; then as final step the position and fitnesses
+of food and enemies is updated, without the need to define critical sections which would force the processor 
+to update the position buffers sequentially.
+
+\begin{lstlisting}[language=C,caption={the parallel version of \textit{computation\_accumulate}}]
+
+  memcpy(current_chunk, 
+         &temp_chunks[0], 
+         sizeof(LogicalChunk));
+
+  for (unsigned int i = 1; i < nr_threads; i++) {
+    for (unsigned int k = 0; k < dim; k++) {
+      current_chunk->comp.cumulated_pos[k] +=
+          temp_chunks[i].comp.cumulated_pos[k];
+      current_chunk->comp.cumulated_speeds[k] +=
+          temp_chunks[i].comp.cumulated_speeds[k];
+    }
+
+    if (current_chunk->comp.next_food_fitness <
+        temp_chunks[i].comp.next_food_fitness) {
+
+          current_chunk->comp.next_food_fitness =
+          temp_chunks[i].comp.next_food_fitness;
+
+          memcpy(current_chunk->comp.next_food, 
+                  temp_chunks[i].comp.next_food,
+                  sizeof(float) * dim);
+    }
+
+    if (current_chunk->comp.next_enemy_fitness >
+        temp_chunks[i].comp.next_enemy_fitness) {
+
+        current_chunk->comp.next_enemy_fitness =
+          temp_chunks[i].comp.next_enemy_fitness;
+
+        memcpy(current_chunk->comp.next_enemy, 
+               temp_chunks[i].comp.next_enemy,
+               sizeof(float) * dim);
+    }
+  }
+  free(temp_chunks);
+  \end{lstlisting}
+
 
 \section{Final execution and results}
 Now that we have described all the procedure it is time to illustrate how 
