@@ -49,22 +49,15 @@ float eval(float *wi, unsigned int *seed, unsigned int d) {
   Fitness fitness = shifted_fitness;
   int N = 30;
   float *array = malloc(sizeof(float) * N);
+  ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
   for (int i = 0; i < N; i++) {
 
-    float *shifted_tmp = malloc(sizeof(float) * p.problem_dimensions);
-    float *shifted_rotation =
-        malloc(sizeof(float) * p.problem_dimensions * p.problem_dimensions);
-    float *shifted_shift = init_array(p.problem_dimensions, 7.0, seed);
-    init_matrix(shifted_rotation, 10.0, p.problem_dimensions, seed);
-
-    init_shifted_fitness(shifted_tmp, shifted_rotation, shifted_shift,
-                         rastrigin_fitness);
-    ChunkSize c = new_chunk_size(p.starting_chunk_count, 1, p.iterations);
-    float *res = dragonfly_compute(p, w, c, fitness, 1, 0, 100.0, *seed);
-    array[i] = fitness(res, seed, p.problem_dimensions);
-    free(shifted_tmp);
-    free(shifted_rotation);
-    free(shifted_shift);
+    void *shifted_fitness = malloc_shifted_fitness(fitness, 80.0, 80.0, seed,
+                                                   p.problem_dimensions);
+    
+    float *res = dragonfly_compute(p, w, c, fitness, shifted_fitness, sizeof(ShiftedFitnessParams), 1, 0, 100.0, *seed);
+    array[i] = fitness(res, seed, p.problem_dimensions, shifted_fitness);
+    free_shifted_fitness(shifted_fitness);
     free(res);
   }
   float std = 0.0, avg = 0.0;

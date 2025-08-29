@@ -8,6 +8,10 @@
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 float *init_array(unsigned int dimensions, float range_max, unsigned int *seed);
 void sum_assign(float *dest, float *source, unsigned int size);
 void sub_assign(float *dest, float *source, unsigned int size);
@@ -17,18 +21,27 @@ void zeroed(float *dest, unsigned int size);
 
 void brownian_motion(float* inp, unsigned int dim, unsigned int * seed);
 // fitness functions
-float rastrigin_fitness(float *inp, unsigned int *, unsigned int dim);
-float sphere_fitness(float *inp, unsigned int *, unsigned int dim);
-float rosenblock_fitness(float *inp, unsigned int*, unsigned int dim);
+float rastrigin_fitness(float *inp, unsigned int *, unsigned int dim, void *data);
+float sphere_fitness(float *inp, unsigned int *, unsigned int dim, void *data);
+float rosenblock_fitness(float *inp, unsigned int*, unsigned int dim, void *data);
 
-float shifted_fitness(float *inp, unsigned int* seed, unsigned int dim);
-void init_shifted_fitness(float *tmp, float * rotation, float * shift, Fitness fitness);
 void init_matrix(float *inp, float range_max, unsigned int dim, unsigned int *seed);
 
+#define MAX_PROBLEM_DIMENSIONS 16
+typedef struct {
+  Fitness fitness;
+  float tmp[MAX_PROBLEM_DIMENSIONS];
+  float rotation[MAX_PROBLEM_DIMENSIONS*MAX_PROBLEM_DIMENSIONS];
+  float shift[MAX_PROBLEM_DIMENSIONS];
 
-void dragonfly_compute_step(Dragonfly *d, float *average_speed,
-    float *cumulated_pos, float *food, float *enemy,
-    unsigned int N, unsigned int NUM_THREADS);
-void computation_accumulate(ComputationStatus *message, Dragonfly *d, float* best, float* best_fitness, unsigned int NUM_THREADS);
+} ShiftedFitnessParams;
+
+ShiftedFitnessParams *malloc_shifted_fitness(Fitness fitness, float shift_range,
+                                             float rotation_range,
+                                             unsigned *seed, unsigned dim);
+void free_shifted_fitness(ShiftedFitnessParams *s);
+
+float shifted_fitness(float *inp, unsigned int *seed, unsigned int dim,
+                      void *data);
 
 #endif

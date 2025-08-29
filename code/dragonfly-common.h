@@ -1,6 +1,7 @@
 #ifndef DA_COMMON
 #define DA_COMMON
 #include <math.h>
+#include <stdbool.h>
 #define MESSAGE_SIZE 16
 #define MAX_CHUNKS 4048
 
@@ -30,7 +31,7 @@ void update_chunk_size(ChunkSize *c);
 
 // Newtype for Fitness functions, they should take the input vector, one int as
 // random number generator seed, and the dimension count
-typedef float (*Fitness)(float *, unsigned int *, unsigned int);
+typedef float (*Fitness)(float *, unsigned int *, unsigned int, void *data);
 
 // function used to compute the step for the linear progression of the weights.
 void weights_compute_steps(Weights *w, unsigned int steps);
@@ -45,6 +46,10 @@ typedef struct {
   float space_size;
   // fitness function
   Fitness fitness;
+  // fitness additional data
+  void *fitness_data;
+  unsigned fitness_data_size;
+
   // adaptive weights
   Weights w;
 
@@ -63,7 +68,7 @@ typedef struct {
 
 Dragonfly dragonfly_new(unsigned int dimensions, unsigned int start,
                         unsigned int end, unsigned int iterations,
-                        float space_size, Weights weights, Fitness fitness,
+                        float space_size, Weights weights, Fitness fitness, void *fitness_data, unsigned fitness_data_size,
                         unsigned int random_seed);
 
 void dragonfly_alloc(Dragonfly *d);
@@ -82,6 +87,16 @@ typedef struct {
 } ComputationStatus;
 
 typedef struct {
+  unsigned int start;
+  unsigned int end;
+  bool to_shift_left;
+  bool to_shift_right;
+  bool complete;
+
+  ComputationStatus comp;
+} LogicalChunk;
+
+typedef struct {
   unsigned int population_size, starting_chunk_count, iterations,
       problem_dimensions, threads_per_process;
 } Parameters;
@@ -93,6 +108,7 @@ Parameters parameter_parse(int argc, char *argv[]);
 void computation_status_merge(ComputationStatus *out, ComputationStatus *in,
                               unsigned int dim);
 float *dragonfly_compute(Parameters p, Weights w, ChunkSize c, Fitness fitness,
-                         unsigned int threads, unsigned int rank_id,
+                         void *fitness_data, unsigned fitness_data_size,
+                         unsigned int process_count, unsigned int rank_id,
                          float space_size, unsigned int srand);
 #endif
