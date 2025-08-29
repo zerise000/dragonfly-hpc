@@ -1,18 +1,28 @@
 \begin{thebibliography}{1}
 
-\bibitem{DAReview}
-Yassine Meraihi Amar Ramdane-Cherif Dalila Acheli~Mohammed Mahseur.
+\bibitem{Boids}
+Craig Reynolds.
+\newblock Flocks, herds, and schools: A distributed behavioral model.
+\newblock {\em ACM SIGGRAPH Computer Graphics}, 21:25--34, 07 1987.
+
+\bibitem{Ant_Colony_optimization}
+Marco Dorigo, Mauro Birattari, and Thomas Stützle.
+\newblock Ant colony optimization.
+\newblock {\em Computational Intelligence Magazine, IEEE}, 1:28--39, 12 2006.
+
+\bibitem{Original}
+Seyedali Mirjalili.
+\newblock Dragonfly algorithm: A new meta-heuristic optimization technique for solving single-objective, discrete, and multi-objective problems.
+\newblock {\em Neural Computing and Applications}, 27, 05 2015.
+
+\bibitem{Meraihi2020}
+Yassine Meraihi, Amar Ramdane-Cherif, Dalila Acheli, and Mohammed Mahseur.
 \newblock Dragonfly algorithm: a comprehensive review and applications.
-\newblock {\em Neural Computing and Applications}, 2020.
+\newblock {\em Neural Computing and Applications}, 32(21):16625--16646, Nov 2020.
 
 \bibitem{BDragonfly}
 Hakan~Gülcan Çiğdem~İnan Acı.
 \newblock H. a modified dragonfly optimization algorithm for single- and multiobjective problems using brownian motion.
 \newblock {\em Computational Intelligence and Neuroscience}, 2019.
-
-\bibitem{Original}
-Seyedali Mirjalili.
-\newblock Dragonfly algorithm: a new meta-heuristic optimization technique for solving single-objective, discrete, and multi-objective problem.
-\newblock {\em Neural Computing and Applications}, 2016.
 
 \end{thebibliography}

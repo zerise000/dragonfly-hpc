@@ -11,6 +11,7 @@
 \usepackage{xcolor}
 \usepackage{float}
 \usepackage{longtable}
+\usepackage{tabularx}
 \usepackage{cite}
 
 
@@ -70,15 +71,18 @@
   }\newline]
 
 \section{Introduction}
-Swarm intelligence algorithms are inspired by the collective behavior of biological systems, where simple rules followed by individuals lead to the emergence of complex and adaptive group behavior. The concept was first introduced in Reynolds' Boids model (1987) \cite{TODO}, which simulated flocking behavior, and gained significant traction in Computer Science with the Ant Colony Optimization algorithm (1995) \cite{TODO}.
+Swarm intelligence algorithms are inspired by the collective behavior of biological systems, where simple rules followed by individuals lead to the emergence of complex and adaptive group behavior.
+The concept was first introduced in Reynolds' Boids model (1987) \cite{Boids}, which simulated flocking behavior, and gained significant traction in Computer Science with the Ant Colony Optimization algorithm (1995) \cite{Ant_Colony_optimization}.
 These algorithms are meta-heuristic in nature, leveraging decentralized and parallel exploration-exploitation strategies to solve optimization problems.
 
-The dragonfly algorithm, first proposed in 2014 and published in 2015 \cite{DAReview}, is a bio-inspired optimization algorithm that simulates the behavior of dragonfly swarms.
+The dragonfly algorithm, first proposed in 2014 and published in 2015 \cite{Original}, is a bio-inspired optimization algorithm that simulates the behavior of dragonfly swarms.
 By mimicking natural behaviors such as alignment, separation, cohesion, attraction to food sources, and distraction from enemies, the algorithm achieves a balance between exploration and exploitation.
 This makes it particularly effective at navigating complex search spaces while reducing the likelihood of being trapped in local optima.
-As of 2019, the algorithm has been cited in over 300 scientific papers, highlighting its impact and popularity in the field.
+As of 2019 \cite{Meraihi2020}, the algorithm has been cited in over 300 scientific papers, highlighting its impact and popularity in the field.
 
-This paper focuses on parallelizing the dragonfly algorithm to improve its scalability and performance. Using popular parallel APIs such as OpenMP for multithreading and MPI for distributed memory systems, we aim to demonstrate how parallelization can significantly reduce execution time while maintaining the algorithm's effectiveness. The results of this study could pave the way for future research and applications of the dragonfly algorithm in high-performance computing environments.
+This paper focuses on parallelizing the dragonfly algorithm to improve its scalability and performance.
+Using popular parallel APIs such as OpenMP for multithreading and MPI for distributed memory systems, we aim to demonstrate how parallelization can significantly reduce execution time while maintaining the algorithm's effectiveness.
+The results of this study could pave the way for future research and applications of the dragonfly algorithm in high-performance computing environments.
 
 \subsection*{How the algorithm works}
 The execution of the dragonfly algorithm begins with the initialization of several arrays: the position vector $P$ representing the positions of all dragonflies, the step vector $\Delta P$ representing their velocities, the position of food sources $F$, and the position of enemies $E$. The algorithm then enters an iterative loop where, for each dragonfly, coefficients are calculated to update its internal state. These coefficients are derived from the observed behaviors of dragonflies in nature, which include:
@@ -186,7 +190,7 @@ The execution proceeds with the following steps:
 
 \noindent Notice that the computation of velocities and position updates is compacted into the same \textbf{for} loop.
 This optimization reduces execution time by performing all calculations locally within the loop, eliminating the need for auxiliary arrays to store intermediate coefficients.
-The rationale for dividing the separation coefficient by the number of neighbors will be explained later in this paper (TODO reference).
+The rationale for dividing the separation coefficient by the number of neighbors will be explained later in this paper in section \ref{chunks}.
 
 \section{Critical analysis of the coefficients}
 During our implementation we discovered some ambiguities in the original paper:
@@ -470,11 +474,11 @@ High Performance Computing cluster at University of Trento, which
 use a particular technology called PBS to handle multiple tasks at the same
 time: this feature comes useful in our case since, as we will see later, we 
 execute multiple istances of the same problem
-\subsection*{structure of the execution}
+\subsection*{Structure of the execution}
 
 As anticipated we will execute the same problem using multiple instances with different amount of
 resources in order to get a complete evaluation of performance. The overall execution use from 1 to 8
-threads, and 4 to 1024 cores
+threads, and 4 to 2048 cores. Also we limit the total amount of threads to 2048 for cluster limitation, for a total of 34 runs, runned twice.
 
 \subsection*{performace theory}
 
@@ -494,27 +498,33 @@ of linear speedup we get that the efficiency is equal to the inverse of $p$
 \label{results}
 Now it is possible to show results obtained from the cluster,
 using the configuration with 4 cores and 1 thread will be considered
-equal as the serial time. The reason for this approach is that a single core computation would require 1024 times the workload of the 1024 process version, but we calibrated the 1024 core version to take 3 minutes.
-
-
-\begin{tabular}{| c | c | c | c | c | c | c |}
+equal as the serial time. The reason for this approach is that a single core computation would require 1024 times the workload of the 1024 process version, but we calibrated the 1024 core version to take 3 minutes;
+so it should take around $3*1024/4=768min \approx 13h $, computing single core would have taken 4 times that.
+\begin{table}[H]
+\centering
+\tiny  % Use tiny font size for maximum space saving
+\setlength{\tabcolsep}{3pt}  % Reduce column separation
+\begin{tabular}{|c|*{10}{c}|}
   \hline
-  T/p & 4	 & 8	& 16	& 32	& 64 & 128  \\
+  T/P & 4 & 8 & 16 & 32 & 64 & 128 & 256 & 512 & 1024 & 2048 \\
   \hline
-  1 & 1	& 2,03 & 3,87 & 7,94 & 14,76 & 31,19  \\
-  2 & 1,04 & 2,05 & 3,97 & 8,50 & 16,43 & 27,90 \\	
-  4 & 1,01 &2,03	& 4,21 &	8,04 &	16,37 &	35,26	\\	
-  8 & 1,02  &2,02 &	4,02 &	8,62 &	18,32 &	32,26 \\
+  1 & -- & 14260.97 & 8471.77 & 3521.04 & 1849.25 & 1157.88 & 483.40 & 255.68 & 193.13 & 118.08 \\
+  2 & -- & 9659.36 & 5628.55 & 3259.06 & 2127.71 & 921.88 & 433.69 & 281.84 & 123.21 & -- \\
+  4 & 12785.30 & 7745.36 & 4652.30 & 2398.08 & 1465.56 & 687.89 & 453.28 & 252.71 & -- & -- \\
+  8 & 13781.07 & 11326.55 & 3800.54 & 2358.14 & 1308.72 & 722.74 & 597.09 & -- & -- & -- \\
   \hline
 \end{tabular}
-\newline\newline As we can see the speedup tends to 
-increase when the number of cores increase, however when
-we use more threads it happens that the
-speedup start to decrease at a certain point for some
-core configuration. As we can see from the plots it 
-seems there are threshold at some specific points, depending
-on the number of threads used; notice how the inclinations
-of the lines in the plot tends to be less and less evident.
+\end{table}
+
+
+
+
+
+As we can see the speedup increase almost linearly with the amount of processes used, in the efficency table it is shown that the efficency stays close to 1, until 512 process, then it deeps down. Probably it happens because the distance of the nodes is increasing (maybe throught a slower switch).
+Instead increasing thread parallelism is not as effective, and it seems to stagnate after 2 threads (but converging to 2)
+The reason could be that mpi pings cpu cores and process executions, so it could be limited to two (becuase Simultaneous Multithreading is usually set to 2).
+
+
 
 \begin{figure}[H]
   \includegraphics[scale=0.3]{img/speedup.jpg}
@@ -527,10 +537,8 @@ Efficiency tends to present an unpredictable behaviour,
 in fact the coefficients grows for some particular setups,
 for others instead numbers decrease. If we take a look on
 the plot below it shows that there is a high variance in the
-datas, with the lines that tends to be more stretched when the
-number of threads gets higher
-\newline
-\newline
+\begin{table}[H]
+\centering
 \begin{tabular}{| c | c | c | c | c | c | c |}
   \hline
   T/p & 4	 & 8	& 16	& 32	& 64 & 128  \\
@@ -541,6 +549,9 @@ number of threads gets higher
   8 &1,02&	1,01&	1,01&	1,08&	1,15&	1,01 \\
   \hline
 \end{tabular}
+\caption{Efficiency results}
+\label{efficiency_results}
+\end{table}
 
 \begin{figure}[H]
   \includegraphics[scale=0.3]{img/efficiency.jpg}
@@ -548,7 +559,12 @@ number of threads gets higher
   \caption{efficiency graphic}
 \end{figure}
 
+
+
 \end{multicols}
+\section{Final execution and results}
+To sum up, the presented code is highly flexible and scalable, and it could be used for small optimization on low end systems as well as training other methods in an hpc architecture.
+The code is available to github, and it can be freely used in different applications.
 
 \bibliographystyle{unsrt}
 \bibliography{references}
