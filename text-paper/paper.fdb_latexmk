@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex paper"] 1756573408.38943 "paper.aux" "paper.bbl" "paper" 1756573409.01507 0
-  "./references.bib" 1756481683.38534 2911 d810a41b065710ca4c711190f36e01e1 ""
+["bibtex paper"] 1756573485.61762 "paper.aux" "paper.bbl" "paper" 1756573485.66579 0
+  "./references.bib" 1756573441.25174 3008 cc2b6ae468aa1a8fe9ea4fb2d3d77151 ""
   "/usr/share/texmf-dist/bibtex/bst/base/unsrt.bst" 1755987285 18030 1376b4b231b50c66211e47e42eda2875 ""
-  "paper.aux" 1756573408.88138 3089 fd7a0a6587c5e679e88ecef0575c3858 "pdflatex"
+  "paper.aux" 1756573485.4591 3127 7d6c8926f6165102aef287edc96a7a36 "pdflatex"
   (generated)
   "paper.bbl"
   "paper.blg"
   (rewritten before read)
-["pdflatex"] 1756573408.43463 "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" "paper.pdf" "paper" 1756573409.01524 0
-  "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" 1756573407.59471 31228 7ae17bf4ad840b71caea127753f22dd4 ""
+["pdflatex"] 1756573484.98109 "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" "paper.pdf" "paper" 1756573485.66585 0
+  "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" 1756573484.81242 31244 1ab1f3021555e09d94fa76902636ed18 ""
   "/usr/share/texmf-dist/fonts/enc/dvips/base/8r.enc" 1755987285 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texmf-dist/fonts/map/fontname/texfonts.map" 1755987285 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm" 1755987285 1408 5937f58aa508ea2cea4901c07d10f5fe ""
@@ -30,6 +30,7 @@
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmr10.tfm" 1755987285 1296 45809c5a464d5f32c8f98ba97c1bb47f ""
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmsy10.tfm" 1755987285 1124 6c73e740cf17375f03eec0ee63599741 ""
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmsy9.tfm" 1755987285 1116 25a7bf822c58caf309a702ef79f4afbb ""
+  "/usr/share/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm" 1755987285 768 1321e9409b4137d6fb428ac9dc956269 ""
   "/usr/share/texmf-dist/fonts/tfm/public/cm/cmtt9.tfm" 1755987285 764 c98a2af25c99b73a368cf7336e255190 ""
   "/usr/share/texmf-dist/fonts/tfm/public/rsfs/rsfs10.tfm" 1755987285 688 37338d6ab346c2f1466b29e195316aa4 ""
   "/usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb" 1755987285 30251 6afa5cb1d0204815a708a080681d4674 ""
@@ -38,6 +39,7 @@
   "/usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb" 1755987285 35752 024fb6c41858982481f6968b5fc26508 ""
   "/usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb" 1755987285 32569 5e5ddc8df908dea60932f3c484a54c0d ""
   "/usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb" 1755987285 32442 c975af247b6702f7ca0c299af3616b80 ""
+  "/usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb" 1755987285 31099 c85edf1dd5b9e826d67c9c7293b6786c ""
   "/usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb" 1755987285 29078 718ea4567ceff944262b0f5b0800e1d9 ""
   "/usr/share/texmf-dist/fonts/type1/urw/symbol/usyr.pfb" 1755987285 33709 b09d2e140b7e807d3a97058263ab6693 ""
   "/usr/share/texmf-dist/fonts/type1/urw/times/utmb8a.pfb" 1755987285 44729 811d6c62865936705a31c797a1d5dada ""
@@ -100,9 +102,9 @@
   "img/chunks.png" 1756457652.36802 113465 c17ec666b22c947210adc94d2d3a5559 ""
   "img/efficency.jpg" 1756573258.39634 57524 8f406ecc4d94093f68de9551759ae48c ""
   "img/speedup.jpg" 1756573240.24991 49189 572f65eb842a9502060a61887aaf4d68 ""
-  "paper.aux" 1756573408.88138 3089 fd7a0a6587c5e679e88ecef0575c3858 "pdflatex"
-  "paper.bbl" 1756573408.42805 1166 4f7db3027e5eada2916c2fe5d59baeaf "bibtex paper"
-  "paper.tex" 1756573407.59471 31228 7ae17bf4ad840b71caea127753f22dd4 ""
+  "paper.aux" 1756573485.4591 3127 7d6c8926f6165102aef287edc96a7a36 "pdflatex"
+  "paper.bbl" 1756573485.6591 1246 e97c418c26f35fd2f5863b5564cd4a79 "bibtex paper"
+  "paper.tex" 1756573484.81242 31244 1ab1f3021555e09d94fa76902636ed18 ""
   (generated)
   "paper.aux"
   "paper.log"

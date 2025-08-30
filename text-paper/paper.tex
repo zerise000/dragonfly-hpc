@@ -50,11 +50,13 @@
 }
 
 \title{\textbf{Parallel dragonfly algorithm} %
-  \\[2ex] \large High Performance Computing for Data Science course 2024/2025}
+  \\[2ex] \large High Performance Computing for Data Science course 2024/2025
+}
 
-\author[1]{Mattia Santaniello}
-\author[2]{Alessio Zeni}
-\affil{University of Trento}
+\author{
+  Mattia Santaniello \quad  mat. 258777 \\ Alessio Zeni  \quad
+  mat. 256130  
+}
 
 \begin{document}
 
@@ -262,9 +264,6 @@ In Figure~\ref{fig:chunks}, the circles now represent butterflies, and the color
 Additionally, we modified the communication algorithm to address a limitation of the butterfly algorithm, which requires the number of participating threads to be a power of two.
 To overcome this constraint, we implemented a two-step approach: first, contributions are accumulated into a single element, and then the result is shared with all participating processes.
 This approach ensures compatibility with any number of threads while maintaining efficient communication.
-
-
-
 
 
 \section{Parallelization with MPI}
@@ -600,7 +599,7 @@ the plot below, it shows that there is high variance in the results.
 \end{multicols}
 \section{Final execution and results}
 To sum up, the presented code is highly flexible and scalable, and it could be used for small optimizations on low-end systems as well as training other methods in an HPC architecture.
-The code is available on GitHub, and it can be freely used in different applications.
+The code is available on GitHub, and it can be freely used in different applications.\cite{GitHub}
 
 \bibliographystyle{unsrt}
 \bibliography{references}
