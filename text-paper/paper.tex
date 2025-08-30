@@ -597,9 +597,22 @@ the plot below, it shows that there is high variance in the results.
 
 
 \end{multicols}
-\section{Final execution and results}
-To sum up, the presented code is highly flexible and scalable, and it could be used for small optimizations on low-end systems as well as training other methods in an HPC architecture.
-The code is available on GitHub, and it can be freely used in different applications.\cite{GitHub}
+\section{Conclusion and final considerations}
+The presented code is highly flexible and scalable, and it could be used for small optimizations on low-end systems as well as 
+training other methods in an HPC architecture. There are some considerations however that need to be cited and discussed:
+
+\begin{itemize}
+
+\item Further analysis should be conducted in order to determine if there are better approaches that could surpass the proposed one.
+As shown in the previous section OpenMP contribute does not seem fundamental for the increase of performance, suggesting a possible bottleneck
+that should be optimized, peraphs considernig other technologies and parallelizing other functions than \textit{computation-accumulate}.
+
+\item Another relevant aspect that need to be investigated is the test of fitness functions different from Rastrigin, looking at how they behave
+in different situations with a HPC approach, considering also some real application in biology and engineering;
+however it is pretty reasonable to assume that results should not differ too much from the ones illustrated in this paper since
+Rastrigin is a hard function to optimize.
+\end{itemize} The code is available on GitHub, and it can be freely 
+used in different applications.\cite{GitHub}
 
 \bibliographystyle{unsrt}
 \bibliography{references}
