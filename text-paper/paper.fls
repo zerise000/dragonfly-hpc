@@ -230,12 +230,10 @@ INPUT ./img/efficency.jpg
 INPUT ./img/efficency.jpg
 INPUT ./img/efficency.jpg
 INPUT ./img/efficency.jpg
-INPUT /usr/share/texlive/texmf-dist/fonts/tfm/adobe/times/ptmr8c.tfm
 INPUT ./paper.bbl
 INPUT ./paper.bbl
 INPUT paper.bbl
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm
-INPUT /usr/share/texlive/texmf-dist/fonts/vf/adobe/times/ptmr8c.vf
 INPUT paper.aux
 INPUT /usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
 INPUT /usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb

@@ -1,15 +1,15 @@
 # Fdb version 4
-["bibtex paper"] 1756576016.55972 "paper.aux" "paper.bbl" "paper" 1756576017.50259 0
+["bibtex paper"] 1756577234.81789 "paper.aux" "paper.bbl" "paper" 1756577236.28678 0
   "./references.bib" 1756568818.37111 3008 cc2b6ae468aa1a8fe9ea4fb2d3d77151 ""
   "/usr/share/texlive/texmf-dist/bibtex/bst/base/unsrt.bst" 1292289607 18030 1376b4b231b50c66211e47e42eda2875 ""
-  "paper.aux" 1756576017.2421 3073 a7c8d917b7e32eba482c51a05254b2e3 "pdflatex"
+  "paper.aux" 1756577235.91447 3073 a7c8d917b7e32eba482c51a05254b2e3 "pdflatex"
   (generated)
   "paper.bbl"
   "paper.blg"
   (rewritten before read)
-["pdflatex"] 1756576016.66579 "/home/mattia/uni/lezioni/HPC/dragonfly-hpc/text-paper/paper.tex" "paper.pdf" "paper" 1756576017.50296 0
+["pdflatex"] 1756577234.96416 "/home/mattia/uni/lezioni/HPC/dragonfly-hpc/text-paper/paper.tex" "paper.pdf" "paper" 1756577236.28717 0
   "/etc/texmf/web2c/texmf.cnf" 1726938617.39703 475 c0e671620eb5563b2130f56340a5fde8 ""
-  "/home/mattia/uni/lezioni/HPC/dragonfly-hpc/text-paper/paper.tex" 1756576015.54061 32191 a66373dd2157325c084ba6f599f32ccd ""
+  "/home/mattia/uni/lezioni/HPC/dragonfly-hpc/text-paper/paper.tex" 1756577231.89647 32191 c5e3ccd346185e17ad205b81069ed4ed ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm" 1136768653 1408 5937f58aa508ea2cea4901c07d10f5fe ""
@@ -103,9 +103,9 @@
   "img/chunks.png" 1756387477.00278 113465 c17ec666b22c947210adc94d2d3a5559 ""
   "img/efficency.jpg" 1756575981.22639 57524 8f406ecc4d94093f68de9551759ae48c ""
   "img/speedup.jpg" 1756575981.22739 49189 572f65eb842a9502060a61887aaf4d68 ""
-  "paper.aux" 1756576017.2421 3073 a7c8d917b7e32eba482c51a05254b2e3 "pdflatex"
-  "paper.bbl" 1756576016.66193 1246 e97c418c26f35fd2f5863b5564cd4a79 "bibtex paper"
-  "paper.tex" 1756576015.54061 32191 a66373dd2157325c084ba6f599f32ccd ""
+  "paper.aux" 1756577235.91447 3073 a7c8d917b7e32eba482c51a05254b2e3 "pdflatex"
+  "paper.bbl" 1756577234.95747 1246 e97c418c26f35fd2f5863b5564cd4a79 "bibtex paper"
+  "paper.tex" 1756577231.89647 32191 c5e3ccd346185e17ad205b81069ed4ed ""
   (generated)
   "paper.aux"
   "paper.log"
