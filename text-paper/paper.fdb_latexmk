@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex paper"] 0 "paper.aux" "paper.bbl" "paper" 1756567626.84401 -1
+["bibtex paper"] 1756573408.38943 "paper.aux" "paper.bbl" "paper" 1756573409.01507 0
   "./references.bib" 1756481683.38534 2911 d810a41b065710ca4c711190f36e01e1 ""
   "/usr/share/texmf-dist/bibtex/bst/base/unsrt.bst" 1755987285 18030 1376b4b231b50c66211e47e42eda2875 ""
-  "paper.aux" 1756567626.69637 3090 b29d98292bf1b3504b8136fd1848b6cb "pdflatex"
+  "paper.aux" 1756573408.88138 3089 fd7a0a6587c5e679e88ecef0575c3858 "pdflatex"
   (generated)
   "paper.bbl"
   "paper.blg"
   (rewritten before read)
-["pdflatex"] 1756567626.34029 "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" "paper.pdf" "paper" 1756567626.84421 0
-  "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" 1756567626.13303 31230 2d1b553d9aa77af117c3b324ba3dae92 ""
+["pdflatex"] 1756573408.43463 "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" "paper.pdf" "paper" 1756573409.01524 0
+  "/home/alessio/Documents/universita/master/1-1/high-performance-computing-for-data-science/dragonfly-hpc/text-paper/paper.tex" 1756573407.59471 31228 7ae17bf4ad840b71caea127753f22dd4 ""
   "/usr/share/texmf-dist/fonts/enc/dvips/base/8r.enc" 1755987285 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/share/texmf-dist/fonts/map/fontname/texfonts.map" 1755987285 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/share/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm" 1755987285 1408 5937f58aa508ea2cea4901c07d10f5fe ""
@@ -98,11 +98,11 @@
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1756538715 2008247 1e309732ebe2cafe6a66fff0fe36f413 ""
   "img/MPI.png" 1756457652.36469 97584 fdf99fe6cfefaae1813e058e6d24019e ""
   "img/chunks.png" 1756457652.36802 113465 c17ec666b22c947210adc94d2d3a5559 ""
-  "img/efficiency.jpg" 1756027297.52043 28970 1e9921f4292311c1d7204a7ffdc65b13 ""
-  "img/speedup.jpg" 1756027297.52376 30772 4c78078da00daaa06ee62c188bc581f8 ""
-  "paper.aux" 1756567626.69637 3090 b29d98292bf1b3504b8136fd1848b6cb "pdflatex"
-  "paper.bbl" 1756562352.02079 1166 4f7db3027e5eada2916c2fe5d59baeaf "bibtex paper"
-  "paper.tex" 1756567626.13303 31230 2d1b553d9aa77af117c3b324ba3dae92 ""
+  "img/efficency.jpg" 1756573258.39634 57524 8f406ecc4d94093f68de9551759ae48c ""
+  "img/speedup.jpg" 1756573240.24991 49189 572f65eb842a9502060a61887aaf4d68 ""
+  "paper.aux" 1756573408.88138 3089 fd7a0a6587c5e679e88ecef0575c3858 "pdflatex"
+  "paper.bbl" 1756573408.42805 1166 4f7db3027e5eada2916c2fe5d59baeaf "bibtex paper"
+  "paper.tex" 1756573407.59471 31228 7ae17bf4ad840b71caea127753f22dd4 ""
   (generated)
   "paper.aux"
   "paper.log"
