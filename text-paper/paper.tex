@@ -502,27 +502,63 @@ equal as the serial time. The reason for this approach is that a single core com
 so it should take around $3*1024/4=768min \approx 13h $, computing single core would have taken 4 times that.
 \begin{table}[H]
 \centering
-\tiny  % Use tiny font size for maximum space saving
-\setlength{\tabcolsep}{3pt}  % Reduce column separation
+\tiny  
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{|c|*{10}{c}|}
   \hline
   T/P & 4 & 8 & 16 & 32 & 64 & 128 & 256 & 512 & 1024 & 2048 \\
   \hline
-  1 & -- & 14260.97 & 8471.77 & 3521.04 & 1849.25 & 1157.88 & 483.40 & 255.68 & 193.13 & 118.08 \\
-  2 & -- & 9659.36 & 5628.55 & 3259.06 & 2127.71 & 921.88 & 433.69 & 281.84 & 123.21 & -- \\
-  4 & 12785.30 & 7745.36 & 4652.30 & 2398.08 & 1465.56 & 687.89 & 453.28 & 252.71 & -- & -- \\
-  8 & 13781.07 & 11326.55 & 3800.54 & 2358.14 & 1308.72 & 722.74 & 597.09 & -- & -- & -- \\
+  1 & 27879.62 & 14531.01 & 7700.45 & 3628.50 & 1873.90 & 1110.29 & 551.18 & 268.84 & 168.71 & 100.21 \\
+  2 & 33202.40 & 14243.06 & 5811.25 & 3274.74 & 1946.32 & 903.55 & 425.83 & 249.58 & 129.12 & -- \\
+  4 & 13136.02 & 8843.29 & 4623.91 & 2419.19 & 1460.78 & 724.75 & 461.13 & 260.10 & -- & -- \\
+  8 & 15110.34 & 11308.10 & 3850.66 & 2345.90 & 1281.55 & 737.66 & 541.53 & -- & -- & -- \\
   \hline
 \end{tabular}
+\caption{Time results}
+\label{time_results}
+\end{table}
+
+\begin{table}[H]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{|c|*{10}{c}|}
+  \hline
+  T/P & 4 & 8 & 16 & 32 & 64 & 128 & 256 & 512 & 1024 & 2048 \\
+  \hline
+  1 & 1 & 1.92 & 3.62 & 7.68 & 14.88 & 25.11 & 50.58 & 103.70 & 165.25 & 278.21 \\
+  2 & 0.84 & 1.96 & 4.80 & 8.51 & 14.32 & 30.86 & 65.47 & 111.71 & 215.93 & -- \\
+  4 & 2.12 & 3.15 & 6.03 & 11.52 & 19.09 & 38.47 & 60.46 & 107.19 & -- & -- \\
+  8 & 1.85 & 2.47 & 7.24 & 11.88 & 21.75 & 37.79 & 51.48 & -- & -- & -- \\
+  \hline
+\end{tabular}
+\caption{Speedup results}
+\label{speedup_results}
+\end{table}
+\begin{table}[H]
+\centering
+\tiny
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{|c|*{10}{c}|}
+  \hline
+  Efficiency & 4 & 8 & 16 & 32 & 64 & 128 & 256 & 512 & 1024 & 2048 \\
+  \hline
+  1 & 1 & 0.96 & 0.91 & 0.96 & 0.93 & 0.78 & 0.79 & 0.81 & 0.65 & 0.54 \\
+  2 & 0.42 & 0.49 & 0.60 & 0.53 & 0.45 & 0.48 & 0.51 & 0.44 & 0.42 & -- \\
+  4 & 0.53 & 0.39 & 0.38 & 0.36 & 0.30 & 0.30 & 0.24 & 0.21 & -- & -- \\
+  8 & 0.23 & 0.15 & 0.23 & 0.19 & 0.17 & 0.15 & 0.10 & -- & -- & -- \\
+  \hline
+\end{tabular}
+\caption{Efficiency results (normalized)}
+\label{efficiency_results_normalized}
 \end{table}
 
 
 
-
-
 As we can see the speedup increase almost linearly with the amount of processes used, in the efficency table it is shown that the efficency stays close to 1, until 512 process, then it deeps down. Probably it happens because the distance of the nodes is increasing (maybe throught a slower switch).
-Instead increasing thread parallelism is not as effective, and it seems to stagnate after 2 threads (but converging to 2)
-The reason could be that mpi pings cpu cores and process executions, so it could be limited to two (becuase Simultaneous Multithreading is usually set to 2).
+Instead increasing thread parallelism is not as effective, and it seems to give a $13\% $ improvment passing from 1 thread to 2 threads, $ 49\%$ to 4 threads, and $ 53\%$ to 8 threads.
+It seems that the thread level paralelization can be improved, however it seems that there is an hard limit, and we think it has to do with mpi core pinning.
+However the mpi scaling can replace openmp even on the same machine, providing better paralelism.
 
 
 
