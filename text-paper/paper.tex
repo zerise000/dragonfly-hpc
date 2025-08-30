@@ -64,8 +64,8 @@
   \fontsize{9}{9}
   \section*{Abstract}
   \textbf{
-    Dragonfly algorithm is an approach used to solve optimization problems through the emulation of dragonflies movements, but it lacks scalability.
-  In this paper the authors propose an approach based on parallelization using dedicated libraries for high performance multiprocess applications like MPI, and OpenMP API for multithread parallelization.
+    The dragonfly algorithm is an approach used to solve optimization problems through the emulation of dragonfly movements, but it lacks scalability.
+  In this paper, the authors propose an approach based on parallelization using dedicated libraries for high-performance multiprocess applications such as MPI, and the OpenMP API for multithread parallelization.
   A comparison of execution times is then conducted between presented implementation and the classic approach based on serial programming,
   to determine whether parallelization leads to performance improvements and enables possible future extensions.
   }\newline]
@@ -270,14 +270,14 @@ This approach ensures compatibility with any number of threads while maintaining
 \section{Parallelization with MPI}
 
 The Message Passing Interface (MPI) is a portable message-passing standard designed to function on parallel computing architectures.
-For our implementation it is usefull because it let us to express multiprocess comunication across multiple machines.
+For our implementation, it is useful because it allows us to express multiprocess communication across multiple machines.
 
 \subsection*{MPI on chunks}
-By far the biggest challenge in the parallelization with MPI was the comunication of the chunks partial computations (given that a chunk may or may not span multiple process).
-Mpi has an atomic function called $sendrecv$, that permits to send a message from a thread while receving from (possibly) another thread.
-This is super useful, but it could have caused deadlocks if every process has to comunicate with multiple chunks.
-So in order to use that we needed to ensure that each process is responsible of the accumulation of one chunk.
-We did this by ensuring that if a chunk starts in another process, and ends in this one, the process comunicate its contribute to the left process. Then the accumulation is performed and the result is shared back to the current block.
+By far the biggest challenge in the parallelization with MPI was the communication of the chunks' partial computations (given that a chunk may or may not span multiple processes).
+MPI has an atomic function called \textit{sendrecv}, that permits sending a message from a thread while receiving from (possibly) another thread.
+This is very useful, but it could have caused deadlocks if every process has to communicate with multiple chunks.
+So in order to use that, we needed to ensure that each process is responsible for the accumulation of one chunk.
+We did this by ensuring that if a chunk starts in another process and ends in this one, the process communicates its contribution to the left process. Then the accumulation is performed and the result is shared back to the current block.
 
 \begin{figure}[H]
   \includegraphics[scale=0.25]{img/MPI.png}
@@ -288,12 +288,12 @@ We did this by ensuring that if a chunk starts in another process, and ends in t
 
 The algorithm is divided in steps (isolated by an MPI barrier):
 \begin{itemize}
-  \item \textbf{Send left}: first, the process that have the end of a block, share their contribute to the left
-  \item \textbf{Accumulate and share} Then it is accumulated in the first process and broadcasted back to all partecipating processes
-  \item \textbf{Send right} Then the rightmost process in the block receives the accumulated value from the left.
+  \item \textbf{Send left}: First, the process that has the end of a block shares its contribution to the left.
+  \item \textbf{Accumulate and share}: Then it is accumulated in the first process and broadcast back to all participating processes.
+  \item \textbf{Send right}: Then the rightmost process in the block receives the accumulated value from the left.
 \end{itemize}
 
-In this way the comunication is efficient, and looking at the results it scales very wheel. More on that in section \ref{results}.
+In this way, the communication is efficient, and looking at the results, it scales very well. More on that in section \ref{results}.
 
 
 \subsection*{MPI and training}
@@ -306,19 +306,19 @@ By leveraging the scalability of MPI, we were able to significantly reduce the t
 
 \section{OpenMP optimization}
 
-OpenMP is a low level API that allows us to execute a sequence of instructions on different threads belonging
-to the same CPU core, improving in this way the performances of our implementation.
-Thanks to a compiler that supports this technology, in our case it is \textit{gcc},
-we can include  pragma directives in our code,
-which will wrap the set of instructions that we are interested to execute
+OpenMP is a low-level API that allows us to execute a sequence of instructions on different threads belonging
+to the same CPU core, thus improving the performance of our implementation.
+Thanks to a compiler that supports this technology (in our case, \textit{gcc}),
+we can include pragma directives in our code,
+which will wrap the set of instructions that we are interested in executing
 in parallel. This feature can be used to 
-speed up the execution of some slow functions like the \textit{computation-accumulate}
+speed up the execution of some slow functions like the \textit{computation-accumulate}.
 
 \subsection*{computation\_accumulate}
 
-This function, after defining the starting and the ending points, compute
-the cumulated sums of dragonfiles positions and speeds 
-and saves the indexes of dragonfiles positions with the best fitness, using them
+This function, after defining the starting and ending points, computes
+the cumulated sums of dragonfly positions and speeds 
+and saves the indexes of dragonfly positions with the best fitness, using them
 to set the next locations of food and enemies.
 
 \begin{lstlisting}[language=C,caption={the serial version of \textit{computation\_accumulate}}]
@@ -365,27 +365,27 @@ to set the next locations of food and enemies.
 \end{lstlisting}
 
 
-The implementation of a parallelized approach in this case is obstacled by the fact that 
-threads should read and write on the same memeory areas like the \textit{cumulated\_pos},
-\textit{cumulated\_speed}, which could be 
+The implementation of a parallelized approach in this case is hindered by the fact that 
+threads should read and write to the same memory areas like the \textit{cumulated\_pos}
+and \textit{cumulated\_speed}, which could be 
 difficult to execute independently from each other due to race conditions. 
-In order to avoid this problem we split the current logical chunk into small ones, each
+In order to avoid this problem, we split the current logical chunk into smaller ones, each
 one of them keeps track of: 
 represents:
 \begin{itemize}
 \item the local cumulated positions
 \item the local cumulated speeds
 \item the best local enemy and food fitnesses
-\item the indexes of the positions of dragonfiles with the best fitnesses
+\item the indexes of the positions of dragonflies with the best fitnesses
 \end{itemize}
-\noindent parallel executions takes care of a particular subchunk,
-defining also the initial and final positions by
-calculating the starting index as $thread\_ID*elems\_per\_thread$ and the end one as $start\_index+ratio$; 
-the final one however could be responsible for more dragonfiles 
+\noindent Parallel executions take care of a particular subchunk,
+also defining the initial and final positions by
+calculating the starting index as $thread\_ID \times elems\_per\_thread$ and the end one as $start\_index + ratio$; 
+the final thread, however, could be responsible for more dragonflies 
 than others since the number of threads does not always
-divide the number of elements perfectly. The single threads then proceed to 
+divide the number of elements perfectly. The individual threads then proceed to 
 calculate the cumulated sums and the fitnesses of the current dragonfly, 
-saving its position index if it maximize the food fitness or minimize the 
+saving its position index if it maximizes the food fitness or minimizes the 
 enemy fitness. 
 \begin{lstlisting}[language=C,caption={the parallel version of \textit{computation\_accumulate}}]
   LogicalChunk *temp_chunks =
@@ -421,10 +421,10 @@ enemy fitness.
     }
   
  \end{lstlisting}
- After the join of all threads, the program performs a reduce of subchunks, calculating
-the optimal . This methodology can be seen as a unique critical section
-executed only once after all the parallel processings have ended; then as final step the position and fitnesses
-of food and enemies is updated, without the need to define critical sections which would force the processor 
+ After the join of all threads, the program performs a reduction of subchunks, calculating
+the optimal values. This methodology can be seen as a single critical section
+executed only once after all the parallel processing has ended; then as a final step, the positions and fitnesses
+of food and enemies are updated, without the need to define critical sections which would force the processor 
 to update the position buffers sequentially.
 
 \begin{lstlisting}[language=C,caption={the parallel version of \textit{computation\_accumulate}}]
@@ -468,38 +468,38 @@ to update the position buffers sequentially.
 
 
 \section{Final execution and results}
-Now that we have described all the procedure it is time to illustrate how 
+Now that we have described all the procedures, it is time to illustrate how 
 the algorithm has been executed. This job has been performed by the
-High Performance Computing cluster at University of Trento, which 
-use a particular technology called PBS to handle multiple tasks at the same
-time: this feature comes useful in our case since, as we will see later, we 
-execute multiple istances of the same problem
+High Performance Computing cluster at the University of Trento, which 
+uses a particular technology called PBS to handle multiple tasks at the same
+time: this feature is useful in our case since, as we will see later, we 
+execute multiple instances of the same problem.
 \subsection*{Structure of the execution}
 
-As anticipated we will execute the same problem using multiple instances with different amount of
-resources in order to get a complete evaluation of performance. The overall execution use from 1 to 8
-threads, and 4 to 2048 cores. Also we limit the total amount of threads to 2048 for cluster limitation, for a total of 34 runs, runned twice.
+As anticipated, we will execute the same problem using multiple instances with different amounts of
+resources in order to get a complete evaluation of performance. The overall execution uses from 1 to 8
+threads and 4 to 2048 cores. Also, we limit the total number of threads to 2048 for cluster limitations, for a total of 34 runs, run twice.
 
 \subsection*{performace theory}
 
-After the end of all tasks it is possible to check how much gain in performance we have obtained.
-To do this it is necessary to introduce some theoretical concepts that will give us the tools that
-will give us a good metric system to evaluate our results.Speedup is defined as the ratio between the the execution times of the serial and parallel
-implementations, so the formula will be equal to: $$Speedup = \frac{T_{serial}}{T_{parallel}}$$ 
-from this definition it is obvious that the more the speedup is the more the parallel implementation
-performs better. There is a particular case where the time execution of the denominator can be defined
+After the end of all tasks, it is possible to check how much gain in performance we have obtained.
+To do this, it is necessary to introduce some theoretical concepts that will provide us with the tools 
+to give us a good metric system to evaluate our results. Speedup is defined as the ratio between the execution times of the serial and parallel
+implementations, so the formula will be: $$Speedup = \frac{T_{serial}}{T_{parallel}}$$ 
+From this definition, it is obvious that the greater the speedup, the better the parallel implementation
+performs. There is a particular case where the execution time of the denominator can be defined
 as $T_{parallel}=T_{serial}/p$, where \textit{p} is the number of cores: this is called \textit{linear speedup},
-and in this situation it perfectly match with the classic speedup coefficient
+and in this situation it perfectly matches the classic speedup coefficient.
 Efficiency is another important parameter, and it is defined by the ratio of the speedup and the 
 number of cores, giving the following formula: $$E = \frac{Speedup}{p}$$
-also in this case the efficiency decrease due to the increase of the number of cores. In case
-of linear speedup we get that the efficiency is equal to the inverse of $p$
+Also in this case, the efficiency decreases due to the increase in the number of cores. In the case
+of linear speedup, we get that the efficiency is equal to the inverse of $p$.
 \subsection*{results}
 \label{results}
-Now it is possible to show results obtained from the cluster,
-using the configuration with 4 cores and 1 thread will be considered
-equal as the serial time. The reason for this approach is that a single core computation would require 1024 times the workload of the 1024 process version, but we calibrated the 1024 core version to take 3 minutes;
-so it should take around $3*1024/4=768min \approx 13h $, computing single core would have taken 4 times that.
+Now it is possible to show the results obtained from the cluster.
+Using the configuration with 4 cores and 1 thread will be considered
+equal to the serial time. The reason for this approach is that a single core computation would require 1024 times the workload of the 1024 process version, but we calibrated the 1024 core version to take 3 minutes;
+so it should take around $3 \times 1024/4 = 768 \textrm{ min} \approx 13\textrm{h}$. Computing with a single core would have taken 4 times that.
 \begin{table}[H]
 \centering
 \tiny  
@@ -555,10 +555,10 @@ so it should take around $3*1024/4=768min \approx 13h $, computing single core w
 
 
 
-As we can see the speedup increase almost linearly with the amount of processes used, in the efficency table it is shown that the efficency stays close to 1, until 512 process, then it deeps down. Probably it happens because the distance of the nodes is increasing (maybe throught a slower switch).
-Instead increasing thread parallelism is not as effective, and it seems to give a $13\% $ improvment passing from 1 thread to 2 threads, $ 49\%$ to 4 threads, and $ 53\%$ to 8 threads.
-It seems that the thread level paralelization can be improved, however it seems that there is an hard limit, and we think it has to do with mpi core pinning.
-However the mpi scaling can replace openmp even on the same machine, providing better paralelism.
+As we can see, the speedup increases almost linearly with the number of processes used. In the efficiency table, it is shown that the efficiency stays close to 1 until 512 processes, then it drops down. This probably happens because the distance between the nodes is increasing (maybe through a slower switch).
+Instead, increasing thread parallelism is not as effective, and it seems to give a $13\%$ improvement when passing from 1 thread to 2 threads, $49\%$ to 4 threads, and $53\%$ to 8 threads.
+It seems that the thread-level parallelization can be improved; however, it seems that there is a hard limit, and we think it has to do with MPI core pinning.
+However, the MPI scaling can replace OpenMP even on the same machine, providing better parallelism.
 
 
 
@@ -569,10 +569,10 @@ However the mpi scaling can replace openmp even on the same machine, providing b
 \end{figure}
 
 \noindent 
-Efficiency tends to present an unpredictable behaviour,
-in fact the coefficients grows for some particular setups,
-for others instead numbers decrease. If we take a look on
-the plot below it shows that there is a high variance in the
+Efficiency tends to present unpredictable behavior.
+In fact, the coefficients grow for some particular setups,
+while for others, the numbers decrease. If we take a look at
+the plot below, it shows that there is high variance in the results.
 \begin{table}[H]
 \centering
 \begin{tabular}{| c | c | c | c | c | c | c |}
@@ -599,8 +599,8 @@ the plot below it shows that there is a high variance in the
 
 \end{multicols}
 \section{Final execution and results}
-To sum up, the presented code is highly flexible and scalable, and it could be used for small optimization on low end systems as well as training other methods in an hpc architecture.
-The code is available to github, and it can be freely used in different applications.
+To sum up, the presented code is highly flexible and scalable, and it could be used for small optimizations on low-end systems as well as training other methods in an HPC architecture.
+The code is available on GitHub, and it can be freely used in different applications.
 
 \bibliographystyle{unsrt}
 \bibliography{references}
